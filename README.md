@@ -1,2 +1,0 @@
-# alignedapplication
-
