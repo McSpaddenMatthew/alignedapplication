@@ -1,3 +1,4 @@
+// app/page.tsx
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "../components/ui/carousel";
@@ -105,29 +106,18 @@ export default function LandingPage() {
       {/* Pricing */}
       <section className="py-20 bg-white px-6 text-center">
         <h2 className="text-3xl font-semibold mb-8">Simple, Transparent Pricing</h2>
-        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+        <div className="max-w-4xl mx-auto grid md:grid-cols-1 gap-6">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-2">Start</h3>
-              <p className="mb-4 text-gray-600">Perfect for solo recruiters getting started.</p>
+              <h3 className="text-xl font-bold mb-2">Professional – $499/month</h3>
+              <p className="mb-4 text-gray-600">Everything a recruiter needs to earn trust and move faster.</p>
               <ul className="text-left list-disc list-inside text-sm text-gray-700 mb-6">
-                <li>Up to 3 candidate reports/month</li>
-                <li>Access to JD Scorecard</li>
-                <li>Unlimited sharing</li>
+                <li>Unlimited candidate reports</li>
+                <li>Hiring manager-ready scorecards</li>
+                <li>Integrated AI summaries</li>
+                <li>White-labeled branding</li>
               </ul>
-              <Button>Start Free</Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-2">Pro – $499/month</h3>
-              <p className="mb-4 text-gray-600">For firms that want confidence in every hire.</p>
-              <ul className="text-left list-disc list-inside text-sm text-gray-700 mb-6">
-                <li>Unlimited reports</li>
-                <li>Custom branding</li>
-                <li>AI assistant summaries</li>
-              </ul>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">Upgrade</Button>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700">Start Now</Button>
             </CardContent>
           </Card>
         </div>
@@ -149,3 +139,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+
