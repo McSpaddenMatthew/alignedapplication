@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Carousel, CarouselContent, CarouselItem } from "../components/ui/carousel";
 
 export default function LandingPage() {
   return (
@@ -9,7 +9,7 @@ export default function LandingPage() {
       <section className="bg-gradient-to-b from-blue-50 to-white py-20 px-6 text-center">
         <h1 className="text-4xl font-bold mb-4">Recruiters exist on trust. This helps you build it.</h1>
         <p className="text-lg mb-6 max-w-xl mx-auto">
-          Aligned turns recruiter insights into client confidence with clean, shareable candidate reports.
+          Aligned earns trust from hiring managers with beautifully clear, instantly shareable candidate summaries.
         </p>
         <div className="flex justify-center gap-4">
           <Button className="text-white bg-blue-600 hover:bg-blue-700">Book a Demo</Button>
@@ -73,7 +73,7 @@ export default function LandingPage() {
               <tr className="bg-blue-100 text-gray-700">
                 <th className="p-4">Feature</th>
                 <th className="p-4">Aligned</th>
-                <th className="p-4">Other AI Sourcing Tools</th>
+                <th className="p-4">Other AI Tools</th>
               </tr>
             </thead>
             <tbody>
@@ -105,19 +105,29 @@ export default function LandingPage() {
       {/* Pricing */}
       <section className="py-20 bg-white px-6 text-center">
         <h2 className="text-3xl font-semibold mb-8">Simple, Transparent Pricing</h2>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-2xl font-bold mb-2">Aligned Pro — $499/month</h3>
-              <p className="mb-4 text-gray-600">The only sourcing tool built for trust-first recruiters who want to close faster.</p>
+              <h3 className="text-xl font-bold mb-2">Start</h3>
+              <p className="mb-4 text-gray-600">Perfect for solo recruiters getting started.</p>
               <ul className="text-left list-disc list-inside text-sm text-gray-700 mb-6">
-                <li>Unlimited candidate summary reports</li>
-                <li>Client-facing visual scorecard and JD alignment</li>
-                <li>Timestamped recruiter quotes</li>
-                <li>White-label branding + sharable link</li>
-                <li>AI-generated fit assessments and red flags</li>
+                <li>Up to 3 candidate reports/month</li>
+                <li>Access to JD Scorecard</li>
+                <li>Unlimited sharing</li>
               </ul>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">Start 7-Day Free Trial</Button>
+              <Button>Start Free</Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold mb-2">Pro – $499/month</h3>
+              <p className="mb-4 text-gray-600">For firms that want confidence in every hire.</p>
+              <ul className="text-left list-disc list-inside text-sm text-gray-700 mb-6">
+                <li>Unlimited reports</li>
+                <li>Custom branding</li>
+                <li>AI assistant summaries</li>
+              </ul>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700">Upgrade</Button>
             </CardContent>
           </Card>
         </div>
@@ -127,7 +137,7 @@ export default function LandingPage() {
       <section className="py-16 px-6 text-center bg-blue-600 text-white">
         <h2 className="text-3xl font-semibold mb-4">Build Trust. Close Faster.</h2>
         <p className="mb-6 max-w-xl mx-auto">
-          Recruiters who use Aligned report 3x faster feedback, better candidate calibration, and longer-term client retention.
+          Recruiters who use Aligned report 3x faster feedback, more placements, and better client retention.
         </p>
         <Button variant="outline" className="text-white border-white">Try It Free</Button>
       </section>
