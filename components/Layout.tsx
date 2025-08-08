@@ -1,48 +1,44 @@
-// components/Layout.tsx
-import { ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { ReactNode } from 'react';
 
 export default function Layout({ children }: { children: ReactNode }) {
+  const session = useSession();
+  const supabase = useSupabaseClient();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg border-r border-gray-200 hidden md:flex flex-col justify-between">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-blue-600 mb-8">Aligned</h2>
-          <nav className="flex flex-col gap-4">
-            <Link href="/" className="text-sm hover:text-blue-600">Dashboard</Link>
-            <Link href="/candidates" className="text-sm hover:text-blue-600">Candidates</Link>
-            <Link href="/settings" className="text-sm hover:text-blue-600">Settings</Link>
-          </nav>
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <nav className="flex justify-between items-center px-6 py-4 bg-white shadow">
+        <Link href="/" className="text-xl font-bold text-blue-600">
+          Aligned
+        </Link>
+        <div>
+          {session ? (
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link href="/login">
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                Login
+              </button>
+            </Link>
+          )}
         </div>
-        <div className="p-6">
-          <p className="text-xs text-gray-400">&copy; 2025 Aligned</p>
-        </div>
-      </aside>
+      </nav>
 
-      {/* Main Area */}
-      <div className="flex flex-col flex-1">
-        {/* Top Navigation */}
-        <header className="bg-white shadow px-6 py-4 flex justify-between items-center border-b border-gray-200">
-          <h1 className="text-xl font-semibold">Welcome Back</h1>
-          <button
-            className="text-sm text-red-500 hover:underline"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                localStorage.clear();
-                window.location.href = '/login';
-              }
-            }}
-          >
-            Logout
-          </button>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
+      <main className="p-6">{children}</main>
     </div>
   );
 }
+
