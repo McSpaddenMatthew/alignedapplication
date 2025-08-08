@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global page background and text color */
+html, body, #__next {
+  height: 100%;
+}
+body {
+  background: #F4F6F8; /* soft gray */
+  color: #0B1D26; /* deep navy for text */
+}
+
+/* Simple container utility */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}

@@ -1,44 +1,37 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { ReactNode } from 'react';
 
-export default function Layout({ children }: { children: ReactNode }) {
-  const session = useSession();
-  const supabase = useSupabaseClient();
+export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+  const isLanding = router.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <nav className="flex justify-between items-center px-6 py-4 bg-white shadow">
-        <Link href="/" className="text-xl font-bold text-blue-600">
-          Aligned
-        </Link>
-        <div>
-          {session ? (
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Logout
-            </button>
-          ) : (
-            <Link href="/login">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                Login
-              </button>
-            </Link>
-          )}
+    <div className="min-h-screen flex flex-col">
+      <nav className="bg-white border-b border-gray-200">
+        <div className="container flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            {/* Simple text logo for now */}
+            <div className="rounded-md bg-navy text-white px-2 py-1 text-sm">Aligned</div>
+            <span className="text-sm text-gray-600 hidden sm:block">Built for recruiters. Trusted by hiring managers.</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-sm hover:underline">Home</Link>
+            <Link href="/login" className="text-sm hover:underline">Login</Link>
+          </div>
         </div>
       </nav>
 
-      <main className="p-6">{children}</main>
+      <main className="flex-1">{children}</main>
+
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="container py-6 text-sm text-gray-600 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>© {new Date().getFullYear()} Aligned</div>
+          <div className="flex gap-4">
+            <a href="mailto:mason@weldrecruiting.co" className="hover:underline">Contact</a>
+            <Link href="/login" className="hover:underline">Login</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
-
