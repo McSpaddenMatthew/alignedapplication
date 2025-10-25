@@ -6,17 +6,31 @@ import '../styles/globals.css';
 import Layout from '../components/Layout';
 import { completeSupabaseSignIn } from '../lib/completeSupabaseSignIn';
 
+function parseUrl(url: string) {
+  if (typeof window === 'undefined') {
+    return new URL(url, 'http://localhost');
+  }
+
+  try {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return new URL(url);
+    }
+    return new URL(url, window.location.origin);
+  } catch (error) {
+    return new URL(window.location.href);
+  }
+}
+
 function hasSupabaseAuthParams(url: string) {
   try {
-    const [pathAndQuery, rawHash = ''] = url.split('#');
-    const [path, rawQuery = ''] = pathAndQuery.split('?');
+    const parsed = parseUrl(url);
 
-    if (path === '/auth/callback') {
+    if (parsed.pathname === '/auth/callback') {
       return false;
     }
 
-    const searchParams = new URLSearchParams(rawQuery);
-    const hashParams = new URLSearchParams(rawHash);
+    const searchParams = parsed.searchParams;
+    const hashParams = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash);
 
     if (searchParams.has('code') || searchParams.has('token_hash')) {
       return true;
@@ -36,10 +50,9 @@ function hasSupabaseAuthParams(url: string) {
 }
 
 function forwardToAuthCallback(url: string) {
-  const [pathAndQuery, rawHash = ''] = url.split('#');
-  const [, rawQuery = ''] = pathAndQuery.split('?');
-  const search = rawQuery ? `?${rawQuery}` : '';
-  const hash = rawHash ? `#${rawHash}` : '';
+  const parsed = parseUrl(url);
+  const hash = parsed.hash ? parsed.hash : '';
+  const search = parsed.search ? parsed.search : '';
   window.location.replace(`/auth/callback${search}${hash}`);
 }
 

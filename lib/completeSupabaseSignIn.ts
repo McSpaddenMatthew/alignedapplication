@@ -29,8 +29,44 @@ function getLoginEmail(queryParams: URLSearchParams, hashParams: URLSearchParams
   if (queryEmail) return queryEmail;
   if (redirectEmail) return redirectEmail;
 
+  const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to');
+
+  if (redirectTo) {
+    try {
+      const redirectUrl = new URL(redirectTo, typeof window !== 'undefined' ? window.location.origin : undefined);
+      const nestedParams = redirectUrl.searchParams;
+      const nestedEmail = nestedParams.get('login_email') || nestedParams.get('email');
+      if (nestedEmail) {
+        return nestedEmail;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Unable to parse Supabase redirect_to email parameter', error);
+    }
+  }
+
   if (typeof window !== 'undefined') {
     return window.localStorage.getItem('aligned:last-login-email');
+  }
+
+  return null;
+}
+
+async function waitForSession() {
+  const maxAttempts = 10;
+  const delayMs = 150;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Unable to retrieve Supabase session while finalising sign-in', error);
+      break;
+    }
+    if (data?.session) {
+      return data.session;
+    }
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
   return null;
@@ -81,6 +117,10 @@ export async function completeSupabaseSignIn() {
       if (error) throw error;
     } else {
       throw new Error(GENERIC_ERROR);
+    }
+    const session = await waitForSession();
+    if (!session) {
+      throw new Error('We verified your link but could not establish a session. Request a fresh magic link and try again.');
     }
   } catch (error: any) {
     throw new Error(error?.message || GENERIC_ERROR);
