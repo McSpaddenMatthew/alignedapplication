@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import { useMemo } from 'react';
 
+import { getSiteUrl } from '../lib/getSiteUrl';
+
 export default function MagicLinkPage() {
   const router = useRouter();
   const email = useMemo(() => {
@@ -8,6 +10,7 @@ export default function MagicLinkPage() {
     const value = Array.isArray(router.query.email) ? router.query.email[0] : router.query.email;
     return decodeURIComponent(value);
   }, [router.query.email]);
+  const destination = useMemo(() => `${getSiteUrl()}/dashboard`, []);
 
   return (
     <div className="container">
@@ -21,6 +24,10 @@ export default function MagicLinkPage() {
           <p className="text-sm font-semibold text-primary mb-2">Having trouble?</p>
           <ul className="list-disc pl-6 space-y-2 text-sm text-gray-700">
             <li>Search for “Aligned magic link” in your inbox or spam folder.</li>
+            <li>
+              The link should open <strong>{destination}</strong>. If you land somewhere else, update your Supabase project’s site
+              URL to this domain.
+            </li>
             <li>If you need the email resent, <button onClick={() => router.push('/login')} className="text-primary underline">go back to login</button>.</li>
             <li>Still stuck? Email <a className="text-primary underline" href="mailto:mason@weldrecruiting.co">mason@weldrecruiting.co</a>.</li>
           </ul>

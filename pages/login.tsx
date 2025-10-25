@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
+import { getSiteUrl } from '../lib/getSiteUrl';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,10 +14,11 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
+      const siteUrl = getSiteUrl();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined
+          emailRedirectTo: `${siteUrl}/dashboard`
         }
       });
       if (error) throw error;
