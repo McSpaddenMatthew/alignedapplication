@@ -2,17 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Inter for Loom-like crisp UI */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+/* Inter for crisp UI */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 html, body, #__next { height: 100%; }
-body { @apply bg-soft text-ink font-sans; }
+body {
+  @apply bg-soft text-ink font-sans;
+  background-image: radial-gradient(circle at 10% 20%, rgba(63, 169, 245, 0.08) 0, transparent 60%),
+    radial-gradient(circle at 90% 10%, rgba(26, 43, 73, 0.05) 0, transparent 55%),
+    linear-gradient(180deg, rgba(249, 250, 251, 0.85), #f9fafb 60%);
+}
+
+a { @apply transition-colors; }
 
 .container { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
 
 .card     { @apply bg-white rounded-xl shadow; }
 .card-pad { @apply p-8; }
 
-input, textarea { @apply w-full border rounded-lg px-3 py-2; }
+input, textarea {
+  @apply w-full border rounded-lg px-3 py-2;
+}
 textarea { resize: vertical; }
 
+button { @apply transition-colors; }
