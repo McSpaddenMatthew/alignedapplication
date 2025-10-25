@@ -15,11 +15,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
 
     const hasCode = searchParams.has('code');
+    const hasTokenHash = searchParams.has('token_hash') || hashParams.has('token_hash');
     const hasAccessToken = hashParams.has('access_token');
     const hasRefreshToken = hashParams.has('refresh_token');
     const isPasswordRecovery = hashParams.get('type') === 'recovery';
 
-    if (hasCode || hasAccessToken || hasRefreshToken || isPasswordRecovery) {
+    if (hasCode || hasTokenHash || hasAccessToken || hasRefreshToken || isPasswordRecovery) {
       const destination = `/auth/callback${search}${hash}`;
       window.location.replace(destination);
     }

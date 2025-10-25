@@ -15,6 +15,10 @@ export default function LoginPage() {
     setMessage(null);
     try {
       const siteUrl = getSiteUrl();
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('aligned:last-login-email', email);
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {

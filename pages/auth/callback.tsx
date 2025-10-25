@@ -3,6 +3,9 @@ import { useRouter } from 'next/router';
 
 import { supabase } from '../../lib/supabaseClient';
 
+type VerifyOtpType = Parameters<typeof supabase.auth.verifyOtp>[0]['type'];
+type EmailOtpType = Extract<VerifyOtpType, 'magiclink' | 'signup' | 'recovery' | 'invite' | 'email_change'>;
+
 type Status = 'initialising' | 'success' | 'error';
 
 const GENERIC_ERROR =
@@ -48,11 +51,23 @@ export default function AuthCallback() {
         const hashParams = parseHashParams(window.location.hash);
 
         const code = queryParams.get('code');
+        const tokenHash = queryParams.get('token_hash');
+        const typeParam = queryParams.get('type') || hashParams.get('type');
+        let email = queryParams.get('email') || hashParams.get('email');
+        if (!email && typeof window !== 'undefined') {
+          email = window.localStorage.getItem('aligned:last-login-email');
+        }
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (tokenHash && email) {
+          const rawType = (typeParam || 'magiclink').toLowerCase();
+          const supportedTypes: EmailOtpType[] = ['signup', 'magiclink', 'recovery', 'invite', 'email_change'];
+          const type = supportedTypes.includes(rawType as EmailOtpType) ? (rawType as EmailOtpType) : 'magiclink';
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type, email });
           if (error) throw error;
         } else if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
@@ -66,6 +81,7 @@ export default function AuthCallback() {
 
         // Clean up the URL so tokens are not stored in browser history.
         if (typeof window !== 'undefined') {
+          window.localStorage.removeItem('aligned:last-login-email');
           const url = new URL(window.location.href);
           url.hash = '';
           url.search = '';
