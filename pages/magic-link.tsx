@@ -10,7 +10,7 @@ export default function MagicLinkPage() {
     const value = Array.isArray(router.query.email) ? router.query.email[0] : router.query.email;
     return decodeURIComponent(value);
   }, [router.query.email]);
-  const destination = useMemo(() => `${getSiteUrl()}/dashboard`, []);
+  const destination = useMemo(() => `${getSiteUrl()}/auth/callback`, []);
 
   return (
     <div className="container">
@@ -25,8 +25,8 @@ export default function MagicLinkPage() {
           <ul className="list-disc pl-6 space-y-2 text-sm text-gray-700">
             <li>Search for “Aligned magic link” in your inbox or spam folder.</li>
             <li>
-              The link should open <strong>{destination}</strong>. If you land somewhere else, update your Supabase project’s site
-              URL to this domain.
+              The link should open <strong>{destination}</strong> and then forward you to the dashboard. If you land somewhere
+              else, update your Supabase project’s site URL to this domain.
             </li>
             <li>If you need the email resent, <button onClick={() => router.push('/login')} className="text-primary underline">go back to login</button>.</li>
             <li>Still stuck? Email <a className="text-primary underline" href="mailto:mason@weldrecruiting.co">mason@weldrecruiting.co</a>.</li>
