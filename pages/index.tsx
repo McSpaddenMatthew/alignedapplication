@@ -1,4 +1,37 @@
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabaseClient';
+
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let isMounted = true;
+
+    const redirectIfAuthenticated = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      if (data?.session) {
+        router.replace('/dashboard');
+      }
+    };
+
+    redirectIfAuthenticated();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        router.replace('/dashboard');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [router]);
+
   return (
     <main className="min-h-screen pb-16">
       <div className="container">
