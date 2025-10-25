@@ -102,6 +102,9 @@ export async function completeSupabaseSignIn() {
   const accessToken = hashParams.get('access_token');
   const refreshToken = hashParams.get('refresh_token');
 
+  let shouldCleanUrl = false;
+  let shouldClearStoredEmail = false;
+
   try {
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -122,13 +125,18 @@ export async function completeSupabaseSignIn() {
     if (!session) {
       throw new Error('We verified your link but could not establish a session. Request a fresh magic link and try again.');
     }
+    shouldCleanUrl = true;
+    shouldClearStoredEmail = true;
   } catch (error: any) {
     throw new Error(error?.message || GENERIC_ERROR);
   } finally {
-    if (typeof window !== 'undefined') {
+    if (shouldClearStoredEmail && typeof window !== 'undefined') {
       window.localStorage.removeItem('aligned:last-login-email');
     }
-    cleanUrl();
+
+    if (shouldCleanUrl) {
+      cleanUrl();
+    }
   }
 }
 
