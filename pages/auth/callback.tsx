@@ -1,92 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
-import { supabase } from '../../lib/supabaseClient';
-
-type VerifyOtpType = Parameters<typeof supabase.auth.verifyOtp>[0]['type'];
-type EmailOtpType = Extract<VerifyOtpType, 'magiclink' | 'signup' | 'recovery' | 'invite' | 'email_change'>;
+import { completeSupabaseSignIn, GENERIC_ERROR } from '../../lib/completeSupabaseSignIn';
 
 type Status = 'initialising' | 'success' | 'error';
-
-const GENERIC_ERROR =
-  'We could not confirm your magic link. Open the link on the same device you requested it from or ask for a fresh one.';
-
-function parseHashParams(hash: string) {
-  if (!hash) return new URLSearchParams();
-  const trimmed = hash.startsWith('#') ? hash.slice(1) : hash;
-  return new URLSearchParams(trimmed);
-}
 
 export default function AuthCallback() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>('initialising');
   const [message, setMessage] = useState('Confirming your access…');
 
-  const siteError = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    const queryParams = new URLSearchParams(window.location.search);
-    const hashParams = parseHashParams(window.location.hash);
-    return (
-      queryParams.get('error_description') ||
-      hashParams.get('error_description') ||
-      queryParams.get('error') ||
-      hashParams.get('error')
-    );
-  }, [router.asPath]);
-
   useEffect(() => {
     if (!router.isReady) return;
 
     const handleSessionExchange = async () => {
       try {
-        if (siteError) {
-          throw new Error(siteError);
-        }
-
-        if (typeof window === 'undefined') {
-          throw new Error(GENERIC_ERROR);
-        }
-
-        const queryParams = new URLSearchParams(window.location.search);
-        const hashParams = parseHashParams(window.location.hash);
-
-        const code = queryParams.get('code');
-        const tokenHash = queryParams.get('token_hash');
-        const typeParam = queryParams.get('type') || hashParams.get('type');
-        let email = queryParams.get('email') || hashParams.get('email');
-        if (!email && typeof window !== 'undefined') {
-          email = window.localStorage.getItem('aligned:last-login-email');
-        }
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-        } else if (tokenHash && email) {
-          const rawType = (typeParam || 'magiclink').toLowerCase();
-          const supportedTypes: EmailOtpType[] = ['signup', 'magiclink', 'recovery', 'invite', 'email_change'];
-          const type = supportedTypes.includes(rawType as EmailOtpType) ? (rawType as EmailOtpType) : 'magiclink';
-          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type, email });
-          if (error) throw error;
-        } else if (accessToken && refreshToken) {
-          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-          if (error) throw error;
-        } else {
-          throw new Error(GENERIC_ERROR);
-        }
+        await completeSupabaseSignIn();
 
         setStatus('success');
         setMessage('You are signed in. Redirecting to your dashboard…');
-
-        // Clean up the URL so tokens are not stored in browser history.
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem('aligned:last-login-email');
-          const url = new URL(window.location.href);
-          url.hash = '';
-          url.search = '';
-          window.history.replaceState({}, document.title, url.toString());
-        }
 
         setTimeout(() => {
           router.replace('/dashboard');
@@ -102,7 +34,7 @@ export default function AuthCallback() {
     };
 
     handleSessionExchange();
-  }, [router, siteError]);
+  }, [router]);
 
   return (
     <div className="container">

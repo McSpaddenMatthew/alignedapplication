@@ -4,6 +4,7 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
+import { completeSupabaseSignIn } from '../lib/completeSupabaseSignIn';
 
 function hasSupabaseAuthParams(url: string) {
   try {
@@ -47,9 +48,20 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const inspect = (url: string) => {
+    const inspect = async (url: string) => {
       if (!hasSupabaseAuthParams(url)) {
         return;
+      }
+
+      if (window.location.pathname !== '/auth/callback') {
+        try {
+          await completeSupabaseSignIn();
+          router.replace('/dashboard');
+          return;
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn('Direct Supabase sign-in completion failed; falling back to callback.', error);
+        }
       }
 
       forwardToAuthCallback(url);
