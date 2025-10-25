@@ -1,9 +1,30 @@
+import { useEffect } from 'react';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const { pathname, search, hash } = window.location;
+
+    if (pathname === '/auth/callback') return;
+
+    const searchParams = new URLSearchParams(search);
+    const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+
+    const hasCode = searchParams.has('code');
+    const hasAccessToken = hashParams.has('access_token');
+    const hasRefreshToken = hashParams.has('refresh_token');
+    const isPasswordRecovery = hashParams.get('type') === 'recovery';
+
+    if (hasCode || hasAccessToken || hasRefreshToken || isPasswordRecovery) {
+      const destination = `/auth/callback${search}${hash}`;
+      window.location.replace(destination);
+    }
+  }, []);
+
   return (
     <>
       <Head>
