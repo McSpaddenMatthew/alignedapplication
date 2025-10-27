@@ -1,14 +1,54 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/login', label: 'Login' }
-];
+import { supabase } from '../lib/supabaseClient';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isLanding = router.pathname === '/';
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      setIsAuthenticated(Boolean(data?.session));
+    };
+
+    loadSession();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setIsAuthenticated(Boolean(session));
+    });
+
+    return () => {
+      active = false;
+      subscription?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const navLinks = isAuthenticated
+    ? [
+        { href: '/', label: 'Home' },
+        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/submit', label: 'Create summary' }
+      ]
+    : [
+        { href: '/', label: 'Home' },
+        { href: '/login', label: 'Login' }
+      ];
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      setIsAuthenticated(false);
+      router.replace('/');
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-soft text-ink">
@@ -32,6 +72,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {link.label}
               </Link>
             ))}
+            {isAuthenticated && (
+              <button onClick={handleSignOut} className="text-gray-600 hover:text-primary transition">
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </nav>

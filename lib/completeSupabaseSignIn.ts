@@ -62,6 +62,18 @@ export async function completeSupabaseSignIn() {
 
   const queryParams = new URLSearchParams(window.location.search);
   const hashParams = parseHashParams(window.location.hash);
+  const loginEmailParam = queryParams.get('login_email') || hashParams.get('login_email');
+  const storedEmail = (() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return window.localStorage.getItem('aligned:last-login-email');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Unable to read stored login email', error);
+      return null;
+    }
+  })();
+  const loginEmail = loginEmailParam || storedEmail;
 
   const siteError =
     queryParams.get('error_description') ||
@@ -96,7 +108,11 @@ export async function completeSupabaseSignIn() {
       const supportedTypes: EmailOtpType[] = ['signup', 'magiclink', 'recovery', 'invite', 'email_change'];
       const rawType = (typeParam || 'magiclink').toLowerCase();
       const type = supportedTypes.includes(rawType as EmailOtpType) ? (rawType as EmailOtpType) : 'magiclink';
-      const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+      const payload = { token_hash: tokenHash, type } as VerifyOtpParams & { email?: string };
+      if (loginEmail && type !== 'recovery') {
+        payload.email = loginEmail;
+      }
+      const { error } = await supabase.auth.verifyOtp(payload);
       if (error) throw error;
     } else if (accessToken && refreshToken) {
       const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
@@ -116,7 +132,12 @@ export async function completeSupabaseSignIn() {
     throw error?.message ? error : new Error(GENERIC_ERROR);
   } finally {
     if (shouldClearStoredEmail && typeof window !== 'undefined') {
-      window.localStorage.removeItem('aligned:last-login-email');
+      try {
+        window.localStorage.removeItem('aligned:last-login-email');
+      } catch (storageError) {
+        // eslint-disable-next-line no-console
+        console.warn('Unable to clear stored login email', storageError);
+      }
     }
 
     if (shouldCleanUrl) {
