@@ -15,21 +15,40 @@ export default function LoginPage() {
     setMessage(null);
     try {
       const siteUrl = getSiteUrl();
+      const emailForRedirect = email.trim();
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem('aligned:last-login-email', email);
+        window.localStorage.setItem('aligned:last-login-email', emailForRedirect);
+      }
+
+      let redirectUrl: string;
+      try {
+        const url = new URL('/auth/callback', siteUrl);
+        if (emailForRedirect) {
+          url.searchParams.set('login_email', emailForRedirect);
+        }
+        redirectUrl = url.toString();
+      } catch (error) {
+        redirectUrl = `${siteUrl.replace(/\/$/, '')}/auth/callback${
+          emailForRedirect ? `?login_email=${encodeURIComponent(emailForRedirect)}` : ''
+        }`;
       }
 
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: emailForRedirect,
         options: {
-          emailRedirectTo: `${siteUrl}/auth/callback?login_email=${encodeURIComponent(email)}`
+          emailRedirectTo: redirectUrl
         }
       });
       if (error) throw error;
       setMessage('Magic link sent. Redirecting…');
       setEmail('');
       setTimeout(() => {
-        router.push(`/magic-link?email=${encodeURIComponent(email)}`);
+        const params = new URLSearchParams();
+        if (emailForRedirect) {
+          params.set('email', emailForRedirect);
+        }
+        const query = params.toString();
+        router.push(query ? `/magic-link?${query}` : '/magic-link');
       }, 400);
     } catch (err: any) {
       setMessage(err.message || 'Login failed.');

@@ -10,7 +10,14 @@ export default function MagicLinkPage() {
     const value = Array.isArray(router.query.email) ? router.query.email[0] : router.query.email;
     return decodeURIComponent(value);
   }, [router.query.email]);
-  const destination = useMemo(() => `${getSiteUrl()}/auth/callback`, []);
+  const destination = useMemo(() => {
+    const siteUrl = getSiteUrl();
+    try {
+      return new URL('/auth/callback', siteUrl).toString();
+    } catch (error) {
+      return `${siteUrl.replace(/\/$/, '')}/auth/callback`;
+    }
+  }, []);
   const launchCallback = useCallback(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
