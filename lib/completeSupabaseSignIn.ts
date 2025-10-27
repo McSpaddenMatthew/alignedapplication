@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 
 export const GENERIC_ERROR =
   'We could not confirm your magic link. Open the link on the same device you requested it from or ask for a fresh one.';
+export const MISSING_EMAIL_ERROR_NAME = 'AlignedMissingEmailError';
 
 function parseHashParams(hash: string) {
   if (!hash) return new URLSearchParams();
@@ -75,7 +76,25 @@ async function waitForSession() {
 type VerifyOtpParams = Parameters<typeof supabase.auth.verifyOtp>[0];
 type EmailOtpType = Extract<VerifyOtpParams['type'], 'magiclink' | 'signup' | 'recovery' | 'invite' | 'email_change'>;
 
-export async function completeSupabaseSignIn() {
+function hasSupabasePayload(queryParams: URLSearchParams, hashParams: URLSearchParams) {
+  return (
+    queryParams.has('code') ||
+    queryParams.has('token_hash') ||
+    hashParams.has('token_hash') ||
+    hashParams.has('access_token') ||
+    hashParams.has('refresh_token')
+  );
+}
+
+function buildMissingEmailError() {
+  const error = new Error(
+    'We could not determine which email requested this magic link. Enter the email you used on the login screen to continue.'
+  );
+  error.name = MISSING_EMAIL_ERROR_NAME;
+  return error;
+}
+
+export async function completeSupabaseSignIn(emailOverride?: string) {
   if (typeof window === 'undefined') {
     throw new Error(GENERIC_ERROR);
   }
@@ -93,12 +112,17 @@ export async function completeSupabaseSignIn() {
     throw new Error(siteError);
   }
 
+  if (!hasSupabasePayload(queryParams, hashParams)) {
+    throw new Error(GENERIC_ERROR);
+  }
+
   const code = queryParams.get('code');
   const queryTokenHash = queryParams.get('token_hash');
   const hashTokenHash = hashParams.get('token_hash');
   const tokenHash = queryTokenHash || hashTokenHash;
   const typeParam = queryParams.get('type') || hashParams.get('type');
-  const email = getLoginEmail(queryParams, hashParams);
+  const derivedEmail = getLoginEmail(queryParams, hashParams);
+  const email = emailOverride || derivedEmail;
   const accessToken = hashParams.get('access_token');
   const refreshToken = hashParams.get('refresh_token');
 
@@ -109,7 +133,11 @@ export async function completeSupabaseSignIn() {
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) throw error;
-    } else if (tokenHash && email) {
+    } else if (tokenHash) {
+      if (!email) {
+        throw buildMissingEmailError();
+      }
+
       const supportedTypes: EmailOtpType[] = ['signup', 'magiclink', 'recovery', 'invite', 'email_change'];
       const rawType = (typeParam || 'magiclink').toLowerCase();
       const type = supportedTypes.includes(rawType as EmailOtpType) ? (rawType as EmailOtpType) : 'magiclink';
@@ -121,14 +149,16 @@ export async function completeSupabaseSignIn() {
     } else {
       throw new Error(GENERIC_ERROR);
     }
+
     const session = await waitForSession();
     if (!session) {
       throw new Error('We verified your link but could not establish a session. Request a fresh magic link and try again.');
     }
+
     shouldCleanUrl = true;
     shouldClearStoredEmail = true;
   } catch (error: any) {
-    throw new Error(error?.message || GENERIC_ERROR);
+    throw error?.message ? error : new Error(GENERIC_ERROR);
   } finally {
     if (shouldClearStoredEmail && typeof window !== 'undefined') {
       window.localStorage.removeItem('aligned:last-login-email');
