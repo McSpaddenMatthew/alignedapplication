@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 import { getSiteUrl } from '../lib/getSiteUrl';
 
@@ -11,6 +11,15 @@ export default function MagicLinkPage() {
     return decodeURIComponent(value);
   }, [router.query.email]);
   const destination = useMemo(() => `${getSiteUrl()}/auth/callback`, []);
+  const launchCallback = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (email) {
+      params.set('login_email', email);
+    }
+    const query = params.toString();
+    window.location.href = query ? `/auth/callback?${query}` : '/auth/callback';
+  }, [email]);
 
   return (
     <div className="container">
@@ -28,7 +37,20 @@ export default function MagicLinkPage() {
               The link should open <strong>{destination}</strong> and then forward you to the dashboard. If you land somewhere
               else, update your Supabase project’s site URL to this domain.
             </li>
-            <li>If you need the email resent, <button onClick={() => router.push('/login')} className="text-primary underline">go back to login</button>.</li>
+            <li>
+              If you landed back on this page,{' '}
+              <button onClick={launchCallback} className="text-primary underline">
+                finish the sign-in now
+              </button>
+              .
+            </li>
+            <li>
+              Need the email resent?{' '}
+              <button onClick={() => router.push('/login')} className="text-primary underline">
+                Go back to login
+              </button>
+              .
+            </li>
             <li>Still stuck? Email <a className="text-primary underline" href="mailto:mason@weldrecruiting.co">mason@weldrecruiting.co</a>.</li>
           </ul>
         </div>

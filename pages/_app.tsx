@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
+import Script from 'next/script';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
 import { completeSupabaseSignIn } from '../lib/completeSupabaseSignIn';
@@ -56,6 +57,61 @@ function forwardToAuthCallback(url: string) {
   window.location.replace(`/auth/callback${search}${hash}`);
 }
 
+const bootstrapScript = `
+(() => {
+  try {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const toUrl = (url) => {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return new URL(url);
+      }
+      return new URL(url, window.location.origin);
+    };
+
+    const inspect = (url) => {
+      try {
+        const parsed = toUrl(url);
+        if (parsed.pathname === '/auth/callback') {
+          return;
+        }
+
+        const rawHash = parsed.hash && parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash;
+        const searchParams = parsed.searchParams;
+        const hashParams = new URLSearchParams(rawHash || '');
+
+        if (
+          searchParams.has('code') ||
+          searchParams.has('token_hash') ||
+          hashParams.has('token_hash') ||
+          hashParams.has('access_token') ||
+          hashParams.has('refresh_token') ||
+          hashParams.get('type') === 'recovery'
+        ) {
+          const search = parsed.search ? parsed.search : '';
+          const hash = parsed.hash ? parsed.hash : '';
+          window.location.replace(\`/auth/callback\${search}\${hash}\`);
+        }
+      } catch (error) {
+        console.error('Failed to evaluate Supabase auth params', error);
+      }
+    };
+
+    inspect(window.location.href);
+    window.addEventListener('hashchange', () => {
+      inspect(window.location.href);
+    });
+    window.addEventListener('pageshow', () => {
+      inspect(window.location.href);
+    });
+  } catch (error) {
+    console.error('Supabase redirect bootstrap failed', error);
+  }
+})();
+`;
+
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
@@ -97,7 +153,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       router.events.off('routeChangeComplete', handleRouteChange);
       window.removeEventListener('hashchange', handleHashChange);
     };
-  }, [router.events]);
+  }, [router]);
 
   return (
     <>
@@ -108,6 +164,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
         <title>Aligned</title>
       </Head>
+      <Script id="supabase-auth-bootstrap" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: bootstrapScript }} />
       <Layout>
         <Component {...pageProps} />
       </Layout>
