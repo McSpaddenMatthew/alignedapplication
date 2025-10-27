@@ -6,6 +6,7 @@ import Script from 'next/script';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
 import { completeSupabaseSignIn } from '../lib/completeSupabaseSignIn';
+import { supabase } from '../lib/supabaseClient';
 
 function parseUrl(url: string) {
   if (typeof window === 'undefined') {
@@ -152,6 +153,47 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
       window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [router, router.pathname]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let active = true;
+
+    const shouldRedirectToDashboard = () => {
+      const authPages = ['/', '/login', '/magic-link', '/auth/callback'];
+      return authPages.includes(router.pathname);
+    };
+
+    const redirectIfSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (!active) return;
+
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.warn('Unable to check Supabase session while routing', error);
+        return;
+      }
+
+      if (data?.session && shouldRedirectToDashboard()) {
+        router.replace('/dashboard');
+      }
+    };
+
+    redirectIfSession();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === 'SIGNED_OUT') return;
+      if (session && shouldRedirectToDashboard()) {
+        router.replace('/dashboard');
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription?.subscription.unsubscribe();
     };
   }, [router]);
 
