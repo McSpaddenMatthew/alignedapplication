@@ -91,7 +91,12 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
 
   const queryParams = new URLSearchParams(window.location.search);
   const hashParams = parseHashParams(window.location.hash);
-  const loginEmailParam = safeDecode(queryParams.get('login_email') || hashParams.get('login_email'));
+  const loginEmailParam = safeDecode(
+    queryParams.get('login_email') ||
+      hashParams.get('login_email') ||
+      queryParams.get('email') ||
+      hashParams.get('email')
+  );
   const overrideEmail = normaliseEmail(options?.email);
   const storedEmail = (() => {
     if (typeof window === 'undefined') return null;
@@ -106,9 +111,11 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
 
   const loginEmail = normaliseEmail(overrideEmail || loginEmailParam || storedEmail);
 
-  if (overrideEmail && typeof window !== 'undefined') {
+  const emailToPersist = overrideEmail || loginEmailParam;
+
+  if (emailToPersist && typeof window !== 'undefined') {
     try {
-      window.localStorage.setItem(LOGIN_EMAIL_STORAGE_KEY, overrideEmail);
+      window.localStorage.setItem(LOGIN_EMAIL_STORAGE_KEY, emailToPersist);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.warn('Unable to store override login email', error);
