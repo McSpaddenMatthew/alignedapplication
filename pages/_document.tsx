@@ -7,6 +7,8 @@ const authBootstrap = `
       return;
     }
 
+    var AUTH_PAYLOAD_KEY = 'aligned:pending-auth-payload';
+
     var toUrl = function (url) {
       try {
         if (url.indexOf('http://') === 0 || url.indexOf('https://') === 0) {
@@ -35,10 +37,28 @@ const authBootstrap = `
       return hashParams.has('token_hash') || hashParams.has('access_token') || hashParams.has('refresh_token');
     };
 
+    var storePayload = function (search, rawHash) {
+      try {
+        if (!search && !rawHash) {
+          return;
+        }
+
+        window.sessionStorage.setItem(
+          AUTH_PAYLOAD_KEY,
+          JSON.stringify({ search: search ? search.slice(1) : '', hash: rawHash || '' })
+        );
+      } catch (storageError) {
+        console.warn('Unable to persist Supabase auth payload', storageError);
+      }
+    };
+
     var forwardToCallback = function (url) {
       var parsed = toUrl(url);
       var search = parsed.search ? parsed.search : '';
       var hash = parsed.hash ? parsed.hash : '';
+      var rawHash = parsed.hash && parsed.hash.charAt(0) === '#' ? parsed.hash.slice(1) : parsed.hash;
+
+      storePayload(search, rawHash);
       window.location.replace('/auth/callback' + search + hash);
     };
 

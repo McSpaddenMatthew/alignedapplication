@@ -12,6 +12,7 @@ function createLoginEmailError() {
 }
 
 const LOGIN_EMAIL_STORAGE_KEY = 'aligned:last-login-email';
+const AUTH_PAYLOAD_STORAGE_KEY = 'aligned:pending-auth-payload';
 
 function normaliseEmail(value: string | null | undefined) {
   if (!value) return null;
@@ -44,6 +45,47 @@ function cleanUrl() {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn('Unable to clean auth callback URL', error);
+  }
+}
+
+function persistAuthPayload(queryParams: URLSearchParams, hashParams: URLSearchParams) {
+  if (typeof window === 'undefined') return;
+  if (!hasSupabasePayload(queryParams, hashParams)) return;
+
+  try {
+    const payload = {
+      search: queryParams.toString(),
+      hash: hashParams.toString()
+    };
+    window.sessionStorage.setItem(AUTH_PAYLOAD_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to persist Supabase auth payload', error);
+  }
+}
+
+function readStoredAuthPayload() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_PAYLOAD_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as { search?: string; hash?: string } | null;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to read stored Supabase auth payload', error);
+    return null;
+  }
+}
+
+function clearStoredAuthPayload() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.sessionStorage.removeItem(AUTH_PAYLOAD_STORAGE_KEY);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to clear stored Supabase auth payload', error);
   }
 }
 
@@ -89,8 +131,25 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
     throw new Error(GENERIC_ERROR);
   }
 
-  const queryParams = new URLSearchParams(window.location.search);
-  const hashParams = parseHashParams(window.location.hash);
+  let queryParams = new URLSearchParams(window.location.search);
+  let hashParams = parseHashParams(window.location.hash);
+  const storedAuthPayload = readStoredAuthPayload();
+
+  if (!hasSupabasePayload(queryParams, hashParams) && storedAuthPayload) {
+    try {
+      const candidateQuery = new URLSearchParams(storedAuthPayload.search || '');
+      const candidateHash = parseHashParams(storedAuthPayload.hash || '');
+      if (hasSupabasePayload(candidateQuery, candidateHash)) {
+        queryParams = candidateQuery;
+        hashParams = candidateHash;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Unable to parse stored Supabase auth payload', error);
+    }
+  }
+
+  persistAuthPayload(queryParams, hashParams);
   const loginEmailParam = safeDecode(
     queryParams.get('login_email') ||
       hashParams.get('login_email') ||
@@ -146,6 +205,7 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
 
   let shouldCleanUrl = false;
   let shouldClearStoredEmail = false;
+  let shouldClearStoredPayload = false;
 
   try {
     if (code) {
@@ -175,6 +235,7 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
 
     shouldCleanUrl = true;
     shouldClearStoredEmail = true;
+    shouldClearStoredPayload = true;
   } catch (error: any) {
     if (error?.code === LOGIN_EMAIL_REQUIRED) {
       throw error;
@@ -193,6 +254,10 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
         // eslint-disable-next-line no-console
         console.warn('Unable to clear stored login email', storageError);
       }
+    }
+
+    if (shouldClearStoredPayload) {
+      clearStoredAuthPayload();
     }
 
     if (shouldCleanUrl) {
