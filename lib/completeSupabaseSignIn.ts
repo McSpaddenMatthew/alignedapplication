@@ -156,10 +156,7 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
       const rawType = (typeParam || 'magiclink').toLowerCase();
       const type = supportedTypes.includes(rawType as EmailOtpType) ? (rawType as EmailOtpType) : 'magiclink';
       const payload = { token_hash: tokenHash, type } as VerifyOtpParams & { email?: string };
-      if (type !== 'recovery') {
-        if (!loginEmail) {
-          throw createLoginEmailError();
-        }
+      if (loginEmail) {
         payload.email = loginEmail;
       }
       const { error } = await supabase.auth.verifyOtp(payload);
