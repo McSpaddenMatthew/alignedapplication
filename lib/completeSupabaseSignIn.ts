@@ -48,8 +48,8 @@ function cleanUrl() {
 }
 
 async function waitForSession() {
-  const maxAttempts = 10;
-  const delayMs = 150;
+  const maxAttempts = 40;
+  const delayMs = 250;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const { data, error } = await supabase.auth.getSession();

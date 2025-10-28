@@ -33,19 +33,12 @@ function hasSupabaseAuthParams(url: string) {
 
     const searchParams = parsed.searchParams;
     const hashParams = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash);
-    const typeParam = (hashParams.get('type') || searchParams.get('type') || '').toLowerCase();
-    const knownTypes = ['magiclink', 'signup', 'recovery', 'invite', 'email_change'];
 
     if (searchParams.has('code') || searchParams.has('token_hash')) {
       return true;
     }
 
-    return (
-      hashParams.has('token_hash') ||
-      hashParams.has('access_token') ||
-      hashParams.has('refresh_token') ||
-      knownTypes.includes(typeParam)
-    );
+    return hashParams.has('token_hash') || hashParams.has('access_token') || hashParams.has('refresh_token');
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Unable to inspect Supabase auth params', error);
@@ -84,16 +77,13 @@ const bootstrapScript = `
         const rawHash = parsed.hash && parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash;
         const searchParams = parsed.searchParams;
         const hashParams = new URLSearchParams(rawHash || '');
-        const typeParam = (hashParams.get('type') || searchParams.get('type') || '').toLowerCase();
-        const knownTypes = ['magiclink', 'signup', 'recovery', 'invite', 'email_change'];
 
         if (
           searchParams.has('code') ||
           searchParams.has('token_hash') ||
           hashParams.has('token_hash') ||
           hashParams.has('access_token') ||
-          hashParams.has('refresh_token') ||
-          knownTypes.includes(typeParam)
+          hashParams.has('refresh_token')
         ) {
           const search = parsed.search ? parsed.search : '';
           const hash = parsed.hash ? parsed.hash : '';

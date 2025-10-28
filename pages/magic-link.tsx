@@ -3,6 +3,7 @@ import { useMemo, useCallback, useEffect, useState } from 'react';
 
 import { getSiteUrl } from '../lib/getSiteUrl';
 import { completeSupabaseSignIn, LOGIN_EMAIL_REQUIRED } from '../lib/completeSupabaseSignIn';
+import { supabase } from '../lib/supabaseClient';
 
 export default function MagicLinkPage() {
   const router = useRouter();
@@ -32,6 +33,39 @@ export default function MagicLinkPage() {
   }, [email]);
 
   useEffect(() => {
+    let active = true;
+
+    const redirectIfSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (!active) return;
+
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.warn('Unable to confirm session while waiting for magic link', error);
+        return;
+      }
+
+      if (data?.session) {
+        router.replace('/dashboard');
+      }
+    };
+
+    redirectIfSession();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      if (session) {
+        router.replace('/dashboard');
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription?.subscription.unsubscribe();
+    };
+  }, [router]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const searchParams = new URLSearchParams(window.location.search);
@@ -42,10 +76,7 @@ export default function MagicLinkPage() {
       searchParams.has('token_hash') ||
       hashParams.has('token_hash') ||
       hashParams.has('access_token') ||
-      hashParams.has('refresh_token') ||
-      ['magiclink', 'signup', 'recovery', 'invite', 'email_change'].includes(
-        (hashParams.get('type') || searchParams.get('type') || '').toLowerCase()
-      );
+      hashParams.has('refresh_token');
 
     if (!hasSupabasePayload) {
       return;
