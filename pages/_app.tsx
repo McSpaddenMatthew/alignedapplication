@@ -33,6 +33,8 @@ function hasSupabaseAuthParams(url: string) {
 
     const searchParams = parsed.searchParams;
     const hashParams = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash);
+    const typeParam = (hashParams.get('type') || searchParams.get('type') || '').toLowerCase();
+    const knownTypes = ['magiclink', 'signup', 'recovery', 'invite', 'email_change'];
 
     if (searchParams.has('code') || searchParams.has('token_hash')) {
       return true;
@@ -42,7 +44,7 @@ function hasSupabaseAuthParams(url: string) {
       hashParams.has('token_hash') ||
       hashParams.has('access_token') ||
       hashParams.has('refresh_token') ||
-      hashParams.get('type') === 'recovery'
+      knownTypes.includes(typeParam)
     );
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -82,6 +84,8 @@ const bootstrapScript = `
         const rawHash = parsed.hash && parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash;
         const searchParams = parsed.searchParams;
         const hashParams = new URLSearchParams(rawHash || '');
+        const typeParam = (hashParams.get('type') || searchParams.get('type') || '').toLowerCase();
+        const knownTypes = ['magiclink', 'signup', 'recovery', 'invite', 'email_change'];
 
         if (
           searchParams.has('code') ||
@@ -89,7 +93,7 @@ const bootstrapScript = `
           hashParams.has('token_hash') ||
           hashParams.has('access_token') ||
           hashParams.has('refresh_token') ||
-          hashParams.get('type') === 'recovery'
+          knownTypes.includes(typeParam)
         ) {
           const search = parsed.search ? parsed.search : '';
           const hash = parsed.hash ? parsed.hash : '';

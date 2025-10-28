@@ -1,10 +1,13 @@
 import { useRouter } from 'next/router';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
 
 import { getSiteUrl } from '../lib/getSiteUrl';
+import { completeSupabaseSignIn, LOGIN_EMAIL_REQUIRED } from '../lib/completeSupabaseSignIn';
 
 export default function MagicLinkPage() {
   const router = useRouter();
+  const [status, setStatus] = useState<'waiting' | 'finishing' | 'success' | 'error'>('waiting');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const email = useMemo(() => {
     if (!router.query.email) return null;
     const value = Array.isArray(router.query.email) ? router.query.email[0] : router.query.email;
@@ -28,6 +31,57 @@ export default function MagicLinkPage() {
     window.location.href = query ? `/auth/callback?${query}` : '/auth/callback';
   }, [email]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const rawHash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+    const hashParams = new URLSearchParams(rawHash);
+    const hasSupabasePayload =
+      searchParams.has('code') ||
+      searchParams.has('token_hash') ||
+      hashParams.has('token_hash') ||
+      hashParams.has('access_token') ||
+      hashParams.has('refresh_token') ||
+      ['magiclink', 'signup', 'recovery', 'invite', 'email_change'].includes(
+        (hashParams.get('type') || searchParams.get('type') || '').toLowerCase()
+      );
+
+    if (!hasSupabasePayload) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const finishInline = async () => {
+      setStatus('finishing');
+      setErrorMessage(null);
+
+      try {
+        await completeSupabaseSignIn();
+        if (cancelled) return;
+        setStatus('success');
+        setTimeout(() => {
+          router.replace('/dashboard');
+        }, 400);
+      } catch (error: any) {
+        if (cancelled) return;
+        if (error?.code === LOGIN_EMAIL_REQUIRED) {
+          launchCallback();
+          return;
+        }
+        setStatus('error');
+        setErrorMessage(error?.message || 'We could not finish signing you in. Use the button below to try again.');
+      }
+    };
+
+    finishInline();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [launchCallback, router]);
+
   return (
     <div className="container">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-12 mt-16 border border-gray-100 text-center">
@@ -36,6 +90,13 @@ export default function MagicLinkPage() {
         <p className="text-gray-700 leading-relaxed">
           We just sent {email ? <strong>{email}</strong> : 'your email'} a secure sign-in link. Open it on this device and you’ll be in your dashboard within seconds.
         </p>
+        {status !== 'waiting' && (
+          <div className="mt-4 text-sm text-gray-600">
+            {status === 'finishing' && <p>Confirming your session…</p>}
+            {status === 'success' && <p>Confirmed. Redirecting to your dashboard…</p>}
+            {status === 'error' && errorMessage && <p className="text-red-600">{errorMessage}</p>}
+          </div>
+        )}
         <div className="mt-8 text-left bg-soft rounded-xl p-6 border border-gray-100">
           <p className="text-sm font-semibold text-primary mb-2">Having trouble?</p>
           <ul className="list-disc pl-6 space-y-2 text-sm text-gray-700">
