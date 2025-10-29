@@ -95,7 +95,10 @@ export default function MagicLinkPage() {
       setErrorMessage(null);
 
       try {
-        await completeSupabaseSignIn();
+        const result = await completeSupabaseSignIn();
+        if (result.redirected) {
+          return;
+        }
         if (cancelled) return;
         setStatus('success');
         setTimeout(() => {

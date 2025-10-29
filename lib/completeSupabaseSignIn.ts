@@ -14,6 +14,28 @@ function createLoginEmailError() {
 const LOGIN_EMAIL_STORAGE_KEY = 'aligned:last-login-email';
 const AUTH_PAYLOAD_STORAGE_KEY = 'aligned:pending-auth-payload';
 
+function resolveCanonicalSiteOrigin() {
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_CANONICAL_SITE_URL ||
+    process.env.NEXT_PUBLIC_CANONICAL_URL ||
+    process.env.NEXT_PUBLIC_CANONICAL_HOST ||
+    '';
+
+  if (!raw) return null;
+
+  try {
+    const value = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
+    return new URL(value).origin;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to resolve canonical site origin', error);
+    return null;
+  }
+}
+
+const canonicalSiteOrigin = resolveCanonicalSiteOrigin();
+
 type StoredAuthPayload = {
   search?: string;
   hash?: string;
@@ -142,6 +164,8 @@ function hasSupabasePayload(queryParams: URLSearchParams, hashParams: URLSearchP
   return (
     queryParams.has('code') ||
     queryParams.has('token_hash') ||
+    queryParams.has('access_token') ||
+    queryParams.has('refresh_token') ||
     hashParams.has('token_hash') ||
     hashParams.has('access_token') ||
     hashParams.has('refresh_token')
@@ -152,7 +176,39 @@ type CompleteSupabaseSignInOptions = {
   email?: string;
 };
 
-export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOptions) {
+type CompleteSupabaseSignInResult = { redirected: boolean };
+
+function maybeRedirectToCanonicalHost(session: Awaited<ReturnType<typeof waitForSession>>) {
+  if (!session || typeof window === 'undefined') {
+    return false;
+  }
+
+  if (!canonicalSiteOrigin || canonicalSiteOrigin === window.location.origin) {
+    return false;
+  }
+
+  if (!session.access_token || !session.refresh_token) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to bridge session to canonical host without tokens');
+    return false;
+  }
+
+  try {
+    const destination = new URL('/auth/callback', canonicalSiteOrigin);
+    destination.searchParams.set('access_token', session.access_token);
+    destination.searchParams.set('refresh_token', session.refresh_token);
+    window.location.replace(destination.toString());
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to redirect to canonical host', error);
+    return false;
+  }
+}
+
+export async function completeSupabaseSignIn(
+  options?: CompleteSupabaseSignInOptions
+): Promise<CompleteSupabaseSignInResult> {
   if (typeof window === 'undefined') {
     throw new Error(GENERIC_ERROR);
   }
@@ -226,8 +282,8 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
   const hashTokenHash = hashParams.get('token_hash');
   const tokenHash = queryTokenHash || hashTokenHash;
   const typeParam = queryParams.get('type') || hashParams.get('type');
-  const accessToken = hashParams.get('access_token');
-  const refreshToken = hashParams.get('refresh_token');
+  const accessToken = queryParams.get('access_token') || hashParams.get('access_token');
+  const refreshToken = queryParams.get('refresh_token') || hashParams.get('refresh_token');
 
   let shouldCleanUrl = false;
   let shouldClearStoredEmail = false;
@@ -259,9 +315,17 @@ export async function completeSupabaseSignIn(options?: CompleteSupabaseSignInOpt
       throw new Error('We verified your link but could not establish a session. Request a fresh magic link and try again.');
     }
 
+    const redirectedToCanonical = maybeRedirectToCanonicalHost(session);
+    if (redirectedToCanonical) {
+      shouldClearStoredEmail = true;
+      shouldClearStoredPayload = true;
+      return { redirected: true };
+    }
+
     shouldCleanUrl = true;
     shouldClearStoredEmail = true;
     shouldClearStoredPayload = true;
+    return { redirected: false };
   } catch (error: any) {
     if (error?.code === LOGIN_EMAIL_REQUIRED) {
       throw error;

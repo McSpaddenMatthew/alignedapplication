@@ -31,7 +31,10 @@ export default function AuthCallback() {
 
     const handleSessionExchange = async () => {
       try {
-        await completeSupabaseSignIn();
+        const result = await completeSupabaseSignIn();
+        if (result.redirected) {
+          return;
+        }
 
         setStatus('success');
         setMessage('You are signed in. Redirecting to your dashboard…');
@@ -64,7 +67,10 @@ export default function AuthCallback() {
     setSubmitError(null);
 
     try {
-      await completeSupabaseSignIn({ email: emailInput });
+      const result = await completeSupabaseSignIn({ email: emailInput });
+      if (result.redirected) {
+        return;
+      }
       setStatus('success');
       setMessage('You are signed in. Redirecting to your dashboard…');
       setTimeout(() => {

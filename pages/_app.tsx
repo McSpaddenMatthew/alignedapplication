@@ -33,7 +33,12 @@ function hasSupabaseAuthParams(url: string) {
     const searchParams = parsed.searchParams;
     const hashParams = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash);
 
-    if (searchParams.has('code') || searchParams.has('token_hash')) {
+    if (
+      searchParams.has('code') ||
+      searchParams.has('token_hash') ||
+      searchParams.has('access_token') ||
+      searchParams.has('refresh_token')
+    ) {
       return true;
     }
 
@@ -82,7 +87,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
       if (window.location.pathname !== '/auth/callback') {
         try {
-          await completeSupabaseSignIn();
+          const result = await completeSupabaseSignIn();
+          if (result.redirected) {
+            return;
+          }
           router.replace('/dashboard');
           return;
         } catch (error) {

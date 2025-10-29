@@ -30,7 +30,12 @@ const authBootstrap = `
       var searchParams = parsed.searchParams;
       var hashParams = new URLSearchParams(rawHash || '');
 
-      if (searchParams.has('code') || searchParams.has('token_hash')) {
+      if (
+        searchParams.has('code') ||
+        searchParams.has('token_hash') ||
+        searchParams.has('access_token') ||
+        searchParams.has('refresh_token')
+      ) {
         return true;
       }
 
