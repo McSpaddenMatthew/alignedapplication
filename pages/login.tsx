@@ -26,11 +26,16 @@ export default function LoginPage() {
         if (emailForRedirect) {
           url.searchParams.set('login_email', emailForRedirect);
         }
+        url.searchParams.set('redirect_origin', siteUrl);
         redirectUrl = url.toString();
       } catch (error) {
-        redirectUrl = `${siteUrl.replace(/\/$/, '')}/auth/callback${
-          emailForRedirect ? `?login_email=${encodeURIComponent(emailForRedirect)}` : ''
-        }`;
+        const params = new URLSearchParams();
+        if (emailForRedirect) {
+          params.set('login_email', emailForRedirect);
+        }
+        params.set('redirect_origin', siteUrl.replace(/\/$/, ''));
+        const query = params.toString();
+        redirectUrl = `${siteUrl.replace(/\/$/, '')}/auth/callback${query ? `?${query}` : ''}`;
       }
 
       const { error } = await supabase.auth.signInWithOtp({

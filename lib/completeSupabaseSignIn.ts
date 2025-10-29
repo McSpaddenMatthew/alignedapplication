@@ -16,10 +16,10 @@ const AUTH_PAYLOAD_STORAGE_KEY = 'aligned:pending-auth-payload';
 
 function resolveCanonicalSiteOrigin() {
   const raw =
-    process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_CANONICAL_SITE_URL ||
     process.env.NEXT_PUBLIC_CANONICAL_URL ||
     process.env.NEXT_PUBLIC_CANONICAL_HOST ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
     '';
 
   if (!raw) return null;
@@ -53,6 +53,19 @@ function safeDecode(value: string | null) {
     return decodeURIComponent(value);
   } catch (error) {
     return value;
+  }
+}
+
+function normaliseRedirectOrigin(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return null;
+    }
+    return parsed.origin;
+  } catch (error) {
+    return null;
   }
 }
 
@@ -178,6 +191,42 @@ type CompleteSupabaseSignInOptions = {
 
 type CompleteSupabaseSignInResult = { redirected: boolean };
 
+function maybeRedirectToRequestedOrigin(
+  redirectOrigin: string | null,
+  session: Awaited<ReturnType<typeof waitForSession>>,
+  loginEmail: string | null
+) {
+  if (!redirectOrigin || !session || typeof window === 'undefined') {
+    return false;
+  }
+
+  if (redirectOrigin === window.location.origin) {
+    return false;
+  }
+
+  if (!session.access_token || !session.refresh_token) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to bridge session to requested origin without tokens');
+    return false;
+  }
+
+  try {
+    const destination = new URL('/auth/callback', redirectOrigin);
+    destination.searchParams.set('access_token', session.access_token);
+    destination.searchParams.set('refresh_token', session.refresh_token);
+    destination.searchParams.set('redirect_origin', redirectOrigin);
+    if (loginEmail) {
+      destination.searchParams.set('login_email', loginEmail);
+    }
+    window.location.replace(destination.toString());
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Unable to redirect to requested origin', error);
+    return false;
+  }
+}
+
 function maybeRedirectToCanonicalHost(session: Awaited<ReturnType<typeof waitForSession>>) {
   if (!session || typeof window === 'undefined') {
     return false;
@@ -237,6 +286,9 @@ export async function completeSupabaseSignIn(
       hashParams.get('login_email') ||
       queryParams.get('email') ||
       hashParams.get('email')
+  );
+  const redirectOrigin = normaliseRedirectOrigin(
+    safeDecode(queryParams.get('redirect_origin') || hashParams.get('redirect_origin'))
   );
   const overrideEmail = normaliseEmail(options?.email);
   const storedEmail = (() => {
@@ -313,6 +365,13 @@ export async function completeSupabaseSignIn(
     const session = await waitForSession();
     if (!session) {
       throw new Error('We verified your link but could not establish a session. Request a fresh magic link and try again.');
+    }
+
+    const redirectedToRequestedOrigin = maybeRedirectToRequestedOrigin(redirectOrigin, session, loginEmail);
+    if (redirectedToRequestedOrigin) {
+      shouldClearStoredEmail = true;
+      shouldClearStoredPayload = true;
+      return { redirected: true };
     }
 
     const redirectedToCanonical = maybeRedirectToCanonicalHost(session);
