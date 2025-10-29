@@ -14,6 +14,11 @@ function createLoginEmailError() {
 const LOGIN_EMAIL_STORAGE_KEY = 'aligned:last-login-email';
 const AUTH_PAYLOAD_STORAGE_KEY = 'aligned:pending-auth-payload';
 
+type StoredAuthPayload = {
+  search?: string;
+  hash?: string;
+} | null;
+
 function normaliseEmail(value: string | null | undefined) {
   if (!value) return null;
   const trimmed = value.trim();
@@ -64,18 +69,39 @@ function persistAuthPayload(queryParams: URLSearchParams, hashParams: URLSearchP
   }
 }
 
-function readStoredAuthPayload() {
+function readStoredAuthPayload(): StoredAuthPayload {
   if (typeof window === 'undefined') return null;
 
   try {
     const raw = window.sessionStorage.getItem(AUTH_PAYLOAD_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as { search?: string; hash?: string } | null;
+    return JSON.parse(raw) as StoredAuthPayload;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn('Unable to read stored Supabase auth payload', error);
     return null;
   }
+}
+
+export function getStoredSupabaseAuthPayload(): { search?: string; hash?: string } | null {
+  const payload = readStoredAuthPayload();
+  if (!payload) return null;
+
+  const normalised: { search?: string; hash?: string } = {};
+
+  if (typeof payload.search === 'string' && payload.search.length > 0) {
+    normalised.search = payload.search;
+  }
+
+  if (typeof payload.hash === 'string' && payload.hash.length > 0) {
+    normalised.hash = payload.hash;
+  }
+
+  if (!normalised.search && !normalised.hash) {
+    return null;
+  }
+
+  return normalised;
 }
 
 function clearStoredAuthPayload() {

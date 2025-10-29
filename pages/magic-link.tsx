@@ -2,7 +2,11 @@ import { useRouter } from 'next/router';
 import { useMemo, useCallback, useEffect, useState } from 'react';
 
 import { getSiteUrl } from '../lib/getSiteUrl';
-import { completeSupabaseSignIn, LOGIN_EMAIL_REQUIRED } from '../lib/completeSupabaseSignIn';
+import {
+  completeSupabaseSignIn,
+  getStoredSupabaseAuthPayload,
+  LOGIN_EMAIL_REQUIRED
+} from '../lib/completeSupabaseSignIn';
 import { supabase } from '../lib/supabaseClient';
 
 export default function MagicLinkPage() {
@@ -78,7 +82,9 @@ export default function MagicLinkPage() {
       hashParams.has('access_token') ||
       hashParams.has('refresh_token');
 
-    if (!hasSupabasePayload) {
+    const storedPayload = getStoredSupabaseAuthPayload();
+
+    if (!hasSupabasePayload && !storedPayload) {
       return;
     }
 

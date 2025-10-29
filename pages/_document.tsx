@@ -52,6 +52,35 @@ const authBootstrap = `
       }
     };
 
+    var getStoredPayload = function () {
+      try {
+        var raw = window.sessionStorage.getItem(AUTH_PAYLOAD_KEY);
+        if (!raw) {
+          return null;
+        }
+
+        var parsed = JSON.parse(raw);
+        if (!parsed) {
+          return null;
+        }
+
+        var hasSearch = parsed.search && typeof parsed.search === 'string' && parsed.search.length > 0;
+        var hasHash = parsed.hash && typeof parsed.hash === 'string' && parsed.hash.length > 0;
+
+        if (!hasSearch && !hasHash) {
+          return null;
+        }
+
+        return {
+          search: hasSearch ? parsed.search : '',
+          hash: hasHash ? parsed.hash : ''
+        };
+      } catch (storageError) {
+        console.warn('Unable to read stored Supabase auth payload', storageError);
+        return null;
+      }
+    };
+
     var forwardToCallback = function (url) {
       var parsed = toUrl(url);
       var search = parsed.search ? parsed.search : '';
@@ -62,10 +91,32 @@ const authBootstrap = `
       window.location.replace('/auth/callback' + search + hash);
     };
 
+    var forwardStoredPayload = function () {
+      var payload = getStoredPayload();
+      if (!payload) {
+        return false;
+      }
+
+      var search = payload.search ? '?' + payload.search : '';
+      var hash = payload.hash ? '#' + payload.hash : '';
+
+      window.location.replace('/auth/callback' + search + hash);
+      return true;
+    };
+
     var inspect = function (url) {
       try {
         if (hasAuthParams(url)) {
           forwardToCallback(url);
+          return;
+        }
+
+        if (toUrl(url).pathname === '/auth/callback') {
+          return;
+        }
+
+        if (forwardStoredPayload()) {
+          return;
         }
       } catch (error) {
         console.error('Supabase auth bootstrap inspection failed', error);

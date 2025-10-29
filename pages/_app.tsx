@@ -4,7 +4,7 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
-import { completeSupabaseSignIn } from '../lib/completeSupabaseSignIn';
+import { completeSupabaseSignIn, getStoredSupabaseAuthPayload } from '../lib/completeSupabaseSignIn';
 import { supabase } from '../lib/supabaseClient';
 
 function parseUrl(url: string) {
@@ -52,6 +52,19 @@ function forwardToAuthCallback(url: string) {
   window.location.replace(`/auth/callback${search}${hash}`);
 }
 
+function forwardStoredPayload() {
+  if (typeof window === 'undefined') return false;
+
+  const payload = getStoredSupabaseAuthPayload();
+  if (!payload) return false;
+
+  const search = payload.search ? `?${payload.search}` : '';
+  const hash = payload.hash ? `#${payload.hash}` : '';
+
+  window.location.replace(`/auth/callback${search}${hash}`);
+  return true;
+}
+
 
 
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -60,7 +73,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const inspect = async (url: string) => {
-      if (!hasSupabaseAuthParams(url)) {
+      const hasParams = hasSupabaseAuthParams(url);
+      const hasStoredPayload = Boolean(getStoredSupabaseAuthPayload());
+
+      if (!hasParams && !hasStoredPayload) {
         return;
       }
 
@@ -75,7 +91,14 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         }
       }
 
-      forwardToAuthCallback(url);
+      if (hasParams) {
+        forwardToAuthCallback(url);
+        return;
+      }
+
+      if (forwardStoredPayload()) {
+        return;
+      }
     };
 
     inspect(window.location.href);
