@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { getErrorMessage } from '../lib/getErrorMessage';
 import { useRouter } from 'next/router';
 
 export default function Submit() {
@@ -37,8 +38,9 @@ export default function Submit() {
 
       if (error) throw error;
       router.push(`/summary/${data.id}`);
-    } catch (err: any) {
-      setMessage(err.message || 'Failed to save.');
+    } catch (error: unknown) {
+      console.error('Submit failed', error);
+      setMessage(getErrorMessage(error, 'Failed to save.'));
     } finally {
       setLoading(false);
     }

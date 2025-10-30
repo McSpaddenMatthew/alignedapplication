@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
+import { getErrorMessage } from '../lib/getErrorMessage';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,12 +22,32 @@ export default function LoginPage() {
       });
       if (error) throw error;
       setMessage('Check your email for the login link.');
-    } catch (err: any) {
-      setMessage(err.message || 'Login failed.');
+    } catch (error: unknown) {
+      console.error('Login failed', error);
+      setMessage(getErrorMessage(error, 'Login failed.'));
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!router.isReady) {
+      return;
+    }
+
+    const errorParam = router.query.error;
+    if (!errorParam) {
+      return;
+    }
+
+    const errorMessage = Array.isArray(errorParam) ? errorParam[0] : errorParam;
+    setMessage(errorMessage);
+
+    const { error, ...rest } = router.query;
+    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true }).catch((error) => {
+      console.error('Failed to clear login error query param', error);
+    });
+  }, [router]);
 
   return (
     <div className="container">
