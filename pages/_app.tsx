@@ -2,6 +2,7 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
+import SupabaseAuthCallbackHandler from '../components/SupabaseAuthCallbackHandler';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
@@ -14,6 +15,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <title>Aligned</title>
       </Head>
       <Layout>
+        <SupabaseAuthCallbackHandler />
         <Component {...pageProps} />
       </Layout>
     </>
