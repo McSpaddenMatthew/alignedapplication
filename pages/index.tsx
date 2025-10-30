@@ -1,188 +1,139 @@
 export default function Home() {
   return (
-    <main className="min-h-screen bg-soft">
-      <div className="container py-16">
-        <section className="grid gap-12 md:grid-cols-[1.05fr,0.95fr] items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase text-primary">
-              Evidence over instinct
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            </div>
-            <h1 className="mt-6 text-4xl font-extrabold leading-tight text-primary sm:text-5xl">
-              Hiring decisions need evidence.<br className="hidden sm:block" /> PE firms need confidence.
-            </h1>
-            <p className="mt-6 max-w-xl text-lg text-gray-700">
-              Built by recruiters who believe in evidence over opinion. Aligned turns recruiter insight into investor-grade clarity so operating partners can decide faster—without the rehash.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="mailto:mason@weldrecruiting.co?subject=Aligned%20Reports"
-                className="inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-semibold text-white shadow-md transition hover:bg-accent/90"
-              >
-                Get my first 3 reports free
-              </a>
-              <a
-                href="#investor-sample"
-                className="inline-flex items-center justify-center rounded-lg border border-primary/40 px-5 py-3 text-base font-semibold text-primary transition hover:border-primary hover:text-primary"
-              >
-                See a sample investor report
-              </a>
-            </div>
-            <div className="mt-8 grid gap-6 sm:grid-cols-3">
-              {[{
-                stat: "72%",
-                label: "reports reviewed same-day"
-              }, {
-                stat: "9/10",
-                label: "managers rate clarity \u201cexcellent\u201d"
-              }, {
-                stat: "30 min",
-                label: "average time saved per slate"
-              }].map((item) => (
-                <div key={item.stat} className="rounded-xl border border-white bg-white/70 p-4 shadow-sm backdrop-blur">
-                  <div className="text-2xl font-bold text-primary">{item.stat}</div>
-                  <div className="text-sm text-gray-600">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+    <main className="min-h-screen">
+      <div className="container">
+        {/* HERO */}
+        <section className="card card-pad mt-10 text-center">
+          <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 text-primary">
+            Turn recruiter insights into proof hiring managers can trust
+          </h1>
+          <p className="text-lg text-gray-700 max-w-3xl mx-auto">
+            Aligned delivers decision-ready summaries that show <strong>why</strong> a candidate is
+            worth interviewing — without the back-and-forth.
+          </p>
 
-          <div className="card relative overflow-hidden">
-            <div className="absolute right-6 top-6 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-600">
-              Investor-ready preview
-            </div>
-            <div className="card-pad space-y-6">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-gray-500">Private equity update</p>
-                <h2 className="mt-2 text-2xl font-semibold text-primary">Operator briefing — Week 8</h2>
-                <p className="mt-1 text-sm text-gray-600">
-                  Concise candidate evidence routed straight to deal teams so they can focus on value creation.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-primary">Portfolio: Northwind Healthcare</span>
-                  <span className="text-xs text-gray-500">Shared 2 hours ago</span>
-                </div>
-                <div className="mt-4 space-y-3 text-sm text-gray-700">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-accent" />
-                    <div>
-                      <div className="font-semibold text-primary">Role: VP Revenue Operations</div>
-                      <p className="text-gray-600">Risk-first summary linked to diligence requirements, with mitigation plan and value creation roadmap.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-amber-400" />
-                    <div>
-                      <div className="font-semibold text-primary">Signals surfaced</div>
-                      <p className="text-gray-600">RevCycle turnaround outcomes, EBITDA impact, post-close retention metrics.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-emerald-500" />
-                    <div>
-                      <div className="font-semibold text-primary">Decision status</div>
-                      <p className="text-gray-600">Operating partner approved for final interview slate.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-primary/5 p-4 text-sm text-primary">
-                "Aligned gets us to conviction faster. Risks are surfaced, the math is clear, and we can keep the deal team moving."
-                <div className="mt-3 font-semibold">— Managing Partner, Growth PE Fund</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-20" id="investor-sample">
-          <div className="text-sm font-semibold uppercase tracking-wide text-primary/70">Why funds choose aligned</div>
-          <h2 className="mt-3 text-3xl font-bold text-primary">Every report is built to earn trust in the first pass.</h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {[
-              {
-                title: "Structured like an investment memo",
-                copy: "We map recruiter intel to diligence priorities \u2014 outcomes, risk, mitigation, and upside \u2014 in a single view."
-              },
-              {
-                title: "Signals, not stories",
-                copy: "Resume facts, KPI deltas, stakeholder quotes, and market context are verified before we ship the report."
-              },
-              {
-                title: "Designed for the operating cadence",
-                copy: "Slack, email, or the dashboard \u2014 your partners get the same template every time and can respond in minutes."
-              }
-            ].map((item) => (
-              <div key={item.title} className="card h-full p-6">
-                <h3 className="text-xl font-semibold text-primary">{item.title}</h3>
-                <p className="mt-3 text-sm text-gray-700">{item.copy}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-20 grid gap-10 rounded-3xl bg-white p-10 shadow-lg lg:grid-cols-[0.8fr,1.2fr]">
-          <div>
-            <div className="text-sm font-semibold uppercase tracking-wide text-primary/70">Workflow</div>
-            <h2 className="mt-4 text-3xl font-bold text-primary">What happens after you send the req</h2>
-            <p className="mt-4 text-gray-700">
-              Recruiters drop structured notes, resumes, and diligence asks. Aligned standardizes every signal into a defensible report and routes it where it needs to go.
-            </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <a href="#sample" className="bg-accent text-white rounded-lg px-4 py-2 font-semibold">
+              See how Aligned works
+            </a>
             <a
               href="mailto:mason@weldrecruiting.co"
-              className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:text-accent/80"
+              className="border border-accent text-accent bg-white rounded-lg px-4 py-2 font-semibold"
             >
-              Book a 15 min workflow audit
-              <span aria-hidden>→</span>
+              Join the waitlist
             </a>
           </div>
-          <ol className="grid gap-6 text-sm text-gray-700 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                step: "01",
-                title: "Upload",
-                detail: "Resume, HM notes, diligence asks, target metrics."
-              },
-              {
-                step: "02",
-                title: "Align",
-                detail: "We fact-check, map risks, and quantify outcomes."
-              },
-              {
-                step: "03",
-                title: "Deliver",
-                detail: "Investor-ready summary + mitigation plan hits every inbox."
-              }
-            ].map((item) => (
-              <li key={item.step} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold uppercase tracking-wide text-primary/60">Step {item.step}</div>
-                <div className="mt-3 text-lg font-semibold text-primary">{item.title}</div>
-                <p className="mt-2 text-gray-600">{item.detail}</p>
-              </li>
-            ))}
-          </ol>
+
+          <div className="mt-4 text-sm text-gray-600">
+            Built for recruiters. <span className="text-gray-800 font-semibold">Trusted by hiring managers.</span>
+          </div>
         </section>
 
-        <section className="mt-20 mb-10 flex flex-col items-center rounded-3xl bg-primary px-10 py-12 text-center text-white shadow-xl">
-          <h2 className="text-3xl font-bold sm:text-4xl">Ready to see the next slate in investor format?</h2>
-          <p className="mt-4 max-w-2xl text-base text-white/80">
-            Share your upcoming search and we\'ll send three full reports on us. No contract, no platform lift \u2014 just the evidence your partners need.
+        {/* BENEFITS */}
+        <section className="grid md:grid-cols-3 gap-6 mt-8">
+          {[
+            { title: "Data that speaks for you",
+              desc: "Evidence—JD must-haves, HM notes, resume facts—organized into one page." },
+            { title: "Confident decisions",
+              desc: "Risks + mitigations up front. Decision-ready instead of guesswork." },
+            { title: "Trust that compounds",
+              desc: "Same structure every time. Clear, consistent communication builds credibility." }
+          ].map((b) => (
+            <div key={b.title} className="card p-6 hover:shadow-lg transition">
+              <div className="text-xl font-semibold mb-2">{b.title}</div>
+              <p className="text-gray-700">{b.desc}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* DATA PROOF */}
+        <section className="card card-pad mt-8">
+          <h2 className="text-2xl font-semibold mb-2">Data first. Minimum noise.</h2>
+          <p className="text-gray-700 mb-6">
+            Aligned structures the signals you already have—no fluff, no drama. Every summary is defensible and easy to review.
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="mailto:mason@weldrecruiting.co?subject=Aligned%20Investor%20Reports"
-              className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-3 text-base font-semibold text-primary shadow-sm transition hover:bg-white/90"
-            >
-              Email Mason to start
-            </a>
-            <a
-              href="/login"
-              className="inline-flex items-center justify-center rounded-lg border border-white/40 px-5 py-3 text-base font-semibold text-white transition hover:border-white"
-            >
-              Log in
+
+          <div className="grid md:grid-cols-2 gap-6 text-gray-800">
+            <ul className="list-disc pl-6 space-y-2">
+              <li><strong>Real-world signals:</strong> JD priorities, HM notes, resume facts, market context.</li>
+              <li><strong>Defensible decisions:</strong> risks are explicit with suggested mitigations.</li>
+              <li><strong>Consistent format:</strong> same structure every time → faster, fairer review.</li>
+            </ul>
+            <ul className="list-disc pl-6 space-y-2">
+              <li><strong>Review in minutes:</strong> outcome highlights + what’s missing.</li>
+              <li><strong>Shareable link:</strong> one clean page for hiring managers.</li>
+              <li><strong>Privacy-aware:</strong> you control access; we store only what you submit.</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* SAMPLE PREVIEW (anchor target) */}
+        <section id="sample" className="card card-pad mt-8">
+          <h2 className="text-2xl font-semibold mb-4">What a manager sees (example)</h2>
+
+          <div className="rounded-lg border p-6">
+            <div className="text-sm text-gray-500 mb-2 uppercase">Candidate Summary</div>
+            <h3 className="text-xl font-semibold">Jane Doe — Director, Data Strategy</h3>
+            <p className="text-gray-600 mb-4">Analytics leadership · Multi-site ops · Value-based care</p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="font-semibold mb-1">Known Risks &amp; Mitigations</div>
+                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                  <li>Limited payer-facing experience → pair with RevCycle lead in first 30 days.</li>
+                  <li>Team of 3 currently → stagger roadmap to de-risk onboarding.</li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">Outcomes</div>
+                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                  <li>Reduced LOS variance 8% across 5 facilities (’23).</li>
+                  <li>Built “cost-to-serve” dashboard used in monthly ops review.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="font-semibold mb-1">What you shared → What the candidate brings</div>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 p-3 rounded">JD: “Value-based care metrics”</div>
+                <div className="bg-gray-50 p-3 rounded">Candidate: “Designed VBC KPI pack adopted by SLT”</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* COMPARISON */}
+        <section className="card card-pad mt-8">
+          <h2 className="text-2xl font-semibold mb-3">Compared to sending raw resumes</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-lg border p-4">
+              <div className="font-semibold mb-2">Old way</div>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+                <li>Managers skim; risks get missed; meetings pile up.</li>
+                <li>Format varies by recruiter; decisions drift.</li>
+                <li>Hard to compare candidates quickly.</li>
+              </ul>
+            </div>
+            <div className="rounded-lg border p-4">
+              <div className="font-semibold mb-2">Aligned</div>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+                <li>Risk-first, defensible summary.</li>
+                <li>Same structure every time; faster approvals.</li>
+                <li>Clean share link; mobile-friendly.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* FINAL CTA */}
+        <section className="card card-pad mt-8 mb-10 text-center">
+          <h3 className="text-2xl font-bold mb-2">Ready to earn trust and move faster?</h3>
+          <p className="text-gray-700 mb-4">Evidence-backed, consistent, and easy to share.</p>
+          <div className="flex items-center justify-center gap-3">
+            <a href="/login" className="bg-accent text-white rounded-lg px-4 py-2 font-semibold">Log in</a>
+            <a href="mailto:mason@weldrecruiting.co" className="border border-accent text-accent rounded-lg px-4 py-2 font-semibold">
+              Join the waitlist
             </a>
           </div>
         </section>
