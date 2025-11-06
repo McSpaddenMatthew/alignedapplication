@@ -51,7 +51,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
         if (isMounted) {
           clearUrlHash();
-          router.replace('/dashboard');
+          await router.replace('/dashboard');
         }
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -61,8 +61,19 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
     handleHashSession();
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+
+      if (session) {
+        void router.replace('/dashboard');
+      }
+    });
+
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, [router]);
 

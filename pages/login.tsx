@@ -12,68 +12,55 @@ export default function LoginPage() {
   useEffect(() => {
     let isMounted = true;
 
-    const clearUrlHash = () => {
-      if (typeof window === 'undefined') return;
-      const { pathname, search } = window.location;
-      window.history.replaceState({}, document.title, `${pathname}${search}`);
-    };
-
-    const handleHashSession = async () => {
+    const flagPendingMagicLink = () => {
       if (typeof window === 'undefined') return;
       const hash = window.location.hash;
+
       if (!hash) return;
 
       const params = new URLSearchParams(hash.replace('#', ''));
       const errorDescription = params.get('error_description');
+
       if (errorDescription) {
         if (isMounted) setMessage(errorDescription);
-        clearUrlHash();
         return;
       }
 
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-
-      if (!accessToken || !refreshToken) return;
-
-      try {
+      if (params.get('access_token') && params.get('refresh_token')) {
         if (isMounted) {
           setProcessingMagicLink(true);
           setMessage('Logging you in…');
         }
-
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        clearUrlHash();
-        router.replace('/dashboard');
-      } catch (err: any) {
-        if (isMounted) setMessage(err.message || 'Login failed.');
-      } finally {
-        if (isMounted) setProcessingMagicLink(false);
       }
     };
 
     const checkExistingSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        router.replace('/dashboard');
+        if (isMounted) {
+          setProcessingMagicLink(true);
+          setMessage('Redirecting to your dashboard…');
+        }
+        await router.replace('/dashboard');
       }
     };
 
-    handleHashSession().then(checkExistingSession);
+    flagPendingMagicLink();
+    void checkExistingSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        router.replace('/dashboard');
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      if (event === 'SIGNED_IN' && session) {
+        setProcessingMagicLink(true);
+        setMessage('Redirecting to your dashboard…');
+        void router.replace('/dashboard');
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setProcessingMagicLink(false);
       }
     });
 
@@ -88,11 +75,16 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
+      const redirectTarget =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/dashboard`
+          : process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL;
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
-        }
+          emailRedirectTo: redirectTarget || undefined,
+        },
       });
       if (error) throw error;
       setMessage('Check your email for the login link.');
