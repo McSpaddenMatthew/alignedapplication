@@ -2,6 +2,30 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 
+const computeDashboardRedirect = () => {
+  const envRedirect = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL;
+
+  if (envRedirect) {
+    try {
+      const url = new URL(envRedirect);
+      if (!url.pathname || url.pathname === '/') {
+        url.pathname = '/dashboard';
+      }
+      return url.toString();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Invalid NEXT_PUBLIC_SUPABASE_REDIRECT_URL, using window origin fallback', error);
+      // Fallback to window origin below if available.
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/dashboard`;
+  }
+
+  return undefined;
+};
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -75,10 +99,7 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const redirectTarget =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/dashboard`
-          : process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL;
+      const redirectTarget = computeDashboardRedirect();
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

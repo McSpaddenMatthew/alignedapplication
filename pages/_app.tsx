@@ -18,48 +18,94 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       window.history.replaceState({}, document.title, `${pathname}${search}`);
     };
 
-    const handleHashSession = async () => {
+    const clearUrlSearch = () => {
+      if (typeof window === 'undefined') return;
+      const url = new URL(window.location.href);
+      url.searchParams.delete('code');
+      url.searchParams.delete('type');
+      url.searchParams.delete('redirect_to');
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_description');
+      const newSearch = url.search ? url.search : '';
+      window.history.replaceState({}, document.title, `${url.pathname}${newSearch}${url.hash}`);
+    };
+
+    const redirectToDashboard = async () => {
+      if (!isMounted || router.pathname === '/dashboard') return;
+      await router.replace('/dashboard');
+    };
+
+    const handleSessionFromUrl = async () => {
       if (typeof window === 'undefined') return;
 
       const hash = window.location.hash;
-      if (!hash || !hash.includes('access_token')) return;
+      if (hash) {
+        const params = new URLSearchParams(hash.replace('#', ''));
+        const errorDescription = params.get('error_description');
 
-      const params = new URLSearchParams(hash.replace('#', ''));
+        if (errorDescription) {
+          // eslint-disable-next-line no-console
+          console.error('Supabase magic link error:', errorDescription);
+          clearUrlHash();
+          return;
+        }
 
-      const errorDescription = params.get('error_description');
-      if (errorDescription) {
-        // eslint-disable-next-line no-console
-        console.error('Supabase magic link error:', errorDescription);
-        clearUrlHash();
-        return;
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          try {
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (error) throw error;
+
+            clearUrlHash();
+            await redirectToDashboard();
+            return;
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to complete Supabase session from hash', err);
+          }
+        }
       }
 
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
+      const searchParams = new URLSearchParams(window.location.search);
+      const authCode = searchParams.get('code');
 
-      if (!accessToken || !refreshToken) return;
+      if (authCode) {
+        try {
+          const { error } = await supabase.auth.exchangeCodeForSession(authCode);
+          if (error) throw error;
 
-      try {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (error) {
-          throw error;
+          clearUrlSearch();
+          await redirectToDashboard();
+          return;
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to exchange Supabase auth code for session', err);
         }
-
-        if (isMounted) {
-          clearUrlHash();
-          await router.replace('/dashboard');
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to complete Supabase session from hash', err);
       }
     };
 
-    handleHashSession();
+    const checkExistingSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          await redirectToDashboard();
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch Supabase session', err);
+      }
+    };
+
+    void (async () => {
+      await handleSessionFromUrl();
+      await checkExistingSession();
+    })();
 
     const {
       data: { subscription },
@@ -67,7 +113,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       if (!isMounted) return;
 
       if (session) {
-        void router.replace('/dashboard');
+        void redirectToDashboard();
       }
     });
 
