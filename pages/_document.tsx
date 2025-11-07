@@ -1,13 +1,160 @@
-import { Html, Head, Main, NextScript } from 'next/document';
+import Document, { Html, Head, Main, NextScript } from 'next/document';
 
-export default function Document() {
-  return (
-    <Html lang="en">
-      <Head />
-      <body style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
-        <Main />
-        <NextScript />
-      </body>
-    </Html>
-  );
+const authBootstrap = `
+(function () {
+  try {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    var AUTH_PAYLOAD_KEY = 'aligned:pending-auth-payload';
+
+    var toUrl = function (url) {
+      try {
+        if (url.indexOf('http://') === 0 || url.indexOf('https://') === 0) {
+          return new URL(url);
+        }
+        return new URL(url, window.location.origin);
+      } catch (error) {
+        return new URL(window.location.href);
+      }
+    };
+
+    var hasAuthParams = function (url) {
+      var parsed = toUrl(url);
+      if (parsed.pathname === '/auth/callback') {
+        return false;
+      }
+
+      var rawHash = parsed.hash && parsed.hash.charAt(0) === '#' ? parsed.hash.slice(1) : parsed.hash;
+      var searchParams = parsed.searchParams;
+      var hashParams = new URLSearchParams(rawHash || '');
+
+      if (
+        searchParams.has('code') ||
+        searchParams.has('token_hash') ||
+        searchParams.has('access_token') ||
+        searchParams.has('refresh_token')
+      ) {
+        return true;
+      }
+
+      return hashParams.has('token_hash') || hashParams.has('access_token') || hashParams.has('refresh_token');
+    };
+
+    var storePayload = function (search, rawHash) {
+      try {
+        if (!search && !rawHash) {
+          return;
+        }
+
+        window.sessionStorage.setItem(
+          AUTH_PAYLOAD_KEY,
+          JSON.stringify({ search: search ? search.slice(1) : '', hash: rawHash || '' })
+        );
+      } catch (storageError) {
+        console.warn('Unable to persist Supabase auth payload', storageError);
+      }
+    };
+
+    var getStoredPayload = function () {
+      try {
+        var raw = window.sessionStorage.getItem(AUTH_PAYLOAD_KEY);
+        if (!raw) {
+          return null;
+        }
+
+        var parsed = JSON.parse(raw);
+        if (!parsed) {
+          return null;
+        }
+
+        var hasSearch = parsed.search && typeof parsed.search === 'string' && parsed.search.length > 0;
+        var hasHash = parsed.hash && typeof parsed.hash === 'string' && parsed.hash.length > 0;
+
+        if (!hasSearch && !hasHash) {
+          return null;
+        }
+
+        return {
+          search: hasSearch ? parsed.search : '',
+          hash: hasHash ? parsed.hash : ''
+        };
+      } catch (storageError) {
+        console.warn('Unable to read stored Supabase auth payload', storageError);
+        return null;
+      }
+    };
+
+    var forwardToCallback = function (url) {
+      var parsed = toUrl(url);
+      var search = parsed.search ? parsed.search : '';
+      var hash = parsed.hash ? parsed.hash : '';
+      var rawHash = parsed.hash && parsed.hash.charAt(0) === '#' ? parsed.hash.slice(1) : parsed.hash;
+
+      storePayload(search, rawHash);
+      window.location.replace('/auth/callback' + search + hash);
+    };
+
+    var forwardStoredPayload = function () {
+      var payload = getStoredPayload();
+      if (!payload) {
+        return false;
+      }
+
+      var search = payload.search ? '?' + payload.search : '';
+      var hash = payload.hash ? '#' + payload.hash : '';
+
+      window.location.replace('/auth/callback' + search + hash);
+      return true;
+    };
+
+    var inspect = function (url) {
+      try {
+        if (hasAuthParams(url)) {
+          forwardToCallback(url);
+          return;
+        }
+
+        if (toUrl(url).pathname === '/auth/callback') {
+          return;
+        }
+
+        if (forwardStoredPayload()) {
+          return;
+        }
+      } catch (error) {
+        console.error('Supabase auth bootstrap inspection failed', error);
+      }
+    };
+
+    inspect(window.location.href);
+    window.addEventListener('hashchange', function () {
+      inspect(window.location.href);
+    });
+    window.addEventListener('pageshow', function (event) {
+      if (event && event.persisted) {
+        inspect(window.location.href);
+      }
+    });
+  } catch (error) {
+    console.error('Supabase auth bootstrap failed', error);
+  }
+})();
+`;
+
+export default class MyDocument extends Document {
+  render() {
+    return (
+      <Html lang="en">
+        <Head>
+          <script dangerouslySetInnerHTML={{ __html: authBootstrap }} />
+        </Head>
+        <body style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
+          <Main />
+          <NextScript />
+        </body>
+      </Html>
+    );
+  }
 }
