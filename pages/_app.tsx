@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import '../styles/globals.css';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabaseClient';
+import { buildDashboardRedirectUrl, performDashboardRedirect } from '../lib/dashboardRedirect';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -26,24 +27,17 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       url.searchParams.delete('redirect_to');
       url.searchParams.delete('error');
       url.searchParams.delete('error_description');
+      url.searchParams.delete('redirect_origin');
       const newSearch = url.search ? url.search : '';
       window.history.replaceState({}, document.title, `${url.pathname}${newSearch}${url.hash}`);
     };
 
+    const dashboardRedirectUrl = buildDashboardRedirectUrl();
+
     const redirectToDashboard = async () => {
-      if (!isMounted || router.pathname === '/dashboard') return;
+      if (!isMounted) return;
 
-      try {
-        await router.replace('/dashboard');
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Next router failed to redirect to dashboard', error);
-      }
-
-      if (typeof window !== 'undefined' && window.location.pathname !== '/dashboard') {
-        const dashboardUrl = new URL('/dashboard', window.location.origin).toString();
-        window.location.assign(dashboardUrl);
-      }
+      await performDashboardRedirect(router, dashboardRedirectUrl);
     };
 
     const handleSessionFromUrl = async () => {
@@ -74,6 +68,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
             if (error) throw error;
 
             clearUrlHash();
+            clearUrlSearch();
             await redirectToDashboard();
             return;
           } catch (err) {

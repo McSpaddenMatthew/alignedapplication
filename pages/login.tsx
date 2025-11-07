@@ -1,30 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
-
-const computeDashboardRedirect = () => {
-  const envRedirect = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL;
-
-  if (envRedirect) {
-    try {
-      const url = new URL(envRedirect);
-      if (!url.pathname || url.pathname === '/') {
-        url.pathname = '/dashboard';
-      }
-      return url.toString();
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Invalid NEXT_PUBLIC_SUPABASE_REDIRECT_URL, using window origin fallback', error);
-      // Fallback to window origin below if available.
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/dashboard`;
-  }
-
-  return undefined;
-};
+import {
+  buildDashboardRedirectUrl,
+  buildMagicLinkRedirectUrl,
+  performDashboardRedirect,
+} from '../lib/dashboardRedirect';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -34,17 +15,8 @@ export default function LoginPage() {
   const router = useRouter();
 
   const redirectToDashboard = useCallback(async () => {
-    try {
-      await router.replace('/dashboard');
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Next router failed to redirect to dashboard from login', error);
-    }
-
-    if (typeof window !== 'undefined' && window.location.pathname !== '/dashboard') {
-      const dashboardUrl = new URL('/dashboard', window.location.origin).toString();
-      window.location.assign(dashboardUrl);
-    }
+    const dashboardUrl = buildDashboardRedirectUrl();
+    await performDashboardRedirect(router, dashboardUrl);
   }, [router]);
 
   useEffect(() => {
@@ -113,7 +85,7 @@ export default function LoginPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const redirectTarget = computeDashboardRedirect();
+      const redirectTarget = buildMagicLinkRedirectUrl();
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
