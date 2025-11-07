@@ -32,7 +32,18 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
     const redirectToDashboard = async () => {
       if (!isMounted || router.pathname === '/dashboard') return;
-      await router.replace('/dashboard');
+
+      try {
+        await router.replace('/dashboard');
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Next router failed to redirect to dashboard', error);
+      }
+
+      if (typeof window !== 'undefined' && window.location.pathname !== '/dashboard') {
+        const dashboardUrl = new URL('/dashboard', window.location.origin).toString();
+        window.location.assign(dashboardUrl);
+      }
     };
 
     const handleSessionFromUrl = async () => {

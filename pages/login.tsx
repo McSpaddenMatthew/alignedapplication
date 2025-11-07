@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 
@@ -33,6 +33,20 @@ export default function LoginPage() {
   const [processingMagicLink, setProcessingMagicLink] = useState(false);
   const router = useRouter();
 
+  const redirectToDashboard = useCallback(async () => {
+    try {
+      await router.replace('/dashboard');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Next router failed to redirect to dashboard from login', error);
+    }
+
+    if (typeof window !== 'undefined' && window.location.pathname !== '/dashboard') {
+      const dashboardUrl = new URL('/dashboard', window.location.origin).toString();
+      window.location.assign(dashboardUrl);
+    }
+  }, [router]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -65,7 +79,7 @@ export default function LoginPage() {
           setProcessingMagicLink(true);
           setMessage('Redirecting to your dashboard…');
         }
-        await router.replace('/dashboard');
+        await redirectToDashboard();
       }
     };
 
@@ -80,7 +94,7 @@ export default function LoginPage() {
       if (event === 'SIGNED_IN' && session) {
         setProcessingMagicLink(true);
         setMessage('Redirecting to your dashboard…');
-        void router.replace('/dashboard');
+        void redirectToDashboard();
       }
 
       if (event === 'SIGNED_OUT') {
@@ -92,7 +106,7 @@ export default function LoginPage() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [redirectToDashboard, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
