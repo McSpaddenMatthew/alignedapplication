@@ -104,30 +104,43 @@ export const performDashboardRedirect = async (
 export const buildMagicLinkRedirectUrl = (): string | undefined => {
   if (typeof window === 'undefined') return canonicalMagicLinkTarget;
 
-  const currentOrigin = window.location.origin;
-  const baseCandidates: URL[] = [];
+  const currentHref = window.location.href;
+  let canonicalUrl: URL | undefined;
 
   if (canonicalMagicLinkTarget) {
     try {
-      baseCandidates.push(new URL(canonicalMagicLinkTarget));
+      canonicalUrl = new URL(canonicalMagicLinkTarget);
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.warn('Invalid NEXT_PUBLIC_SUPABASE_REDIRECT_URL, falling back to window origin', error);
+      console.warn('Invalid NEXT_PUBLIC_SUPABASE_REDIRECT_URL, ignoring canonical target', error);
     }
   }
 
+  let targetUrl: URL | undefined;
+
   try {
-    baseCandidates.push(new URL(currentOrigin));
+    const currentUrl = new URL(currentHref);
+
+    if (canonicalUrl) {
+      targetUrl = new URL(canonicalUrl.toString());
+      targetUrl.protocol = currentUrl.protocol;
+      targetUrl.host = currentUrl.host;
+    } else {
+      targetUrl = new URL(currentUrl.toString());
+    }
+
+    // Reset search/hash so we control the params explicitly.
+    targetUrl.search = canonicalUrl?.search ?? '';
+    targetUrl.hash = canonicalUrl?.hash ?? '';
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to parse current window origin for magic link redirect', error);
+    console.error('Failed to derive magic link redirect URL from current location', error);
+    targetUrl = canonicalUrl;
   }
-
-  const targetUrl = baseCandidates[0];
 
   if (!targetUrl) return undefined;
 
-  targetUrl.searchParams.set('redirect_origin', currentOrigin);
+  targetUrl.searchParams.set('redirect_origin', window.location.origin);
 
   return targetUrl.toString();
 };
