@@ -7,6 +7,17 @@ const allowedRedirectHosts = (process.env.NEXT_PUBLIC_ALLOWED_REDIRECT_HOSTS || 
 
 const canonicalMagicLinkTarget = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL;
 
+let parsedCanonicalRedirect: URL | undefined;
+
+if (canonicalMagicLinkTarget) {
+  try {
+    parsedCanonicalRedirect = new URL(canonicalMagicLinkTarget);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Invalid NEXT_PUBLIC_SUPABASE_REDIRECT_URL, ignoring canonical target', error);
+  }
+}
+
 const isHttpsProtocol = (url: URL) => url.protocol === 'https:' || url.protocol === 'http:';
 
 const hostMatchesAllowedList = (host: string) => {
@@ -102,45 +113,38 @@ export const performDashboardRedirect = async (
 };
 
 export const buildMagicLinkRedirectUrl = (): string | undefined => {
-  if (typeof window === 'undefined') return canonicalMagicLinkTarget;
-
-  const currentHref = window.location.href;
-  let canonicalUrl: URL | undefined;
-
-  if (canonicalMagicLinkTarget) {
-    try {
-      canonicalUrl = new URL(canonicalMagicLinkTarget);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Invalid NEXT_PUBLIC_SUPABASE_REDIRECT_URL, ignoring canonical target', error);
-    }
-  }
-
-  let targetUrl: URL | undefined;
+  if (typeof window === 'undefined') return parsedCanonicalRedirect?.toString();
 
   try {
-    const currentUrl = new URL(currentHref);
+    const currentUrl = new URL(window.location.href);
+    const targetUrl = new URL(window.location.origin);
 
-    if (canonicalUrl) {
-      targetUrl = new URL(canonicalUrl.toString());
-      targetUrl.protocol = currentUrl.protocol;
-      targetUrl.host = currentUrl.host;
-    } else {
-      targetUrl = new URL(currentUrl.toString());
-    }
+    const canonicalPathname = parsedCanonicalRedirect?.pathname;
+    const canonicalSearch = parsedCanonicalRedirect?.search ?? '';
+    const canonicalHash = parsedCanonicalRedirect?.hash ?? '';
 
-    // Reset search/hash so we control the params explicitly.
-    targetUrl.search = canonicalUrl?.search ?? '';
-    targetUrl.hash = canonicalUrl?.hash ?? '';
+    targetUrl.pathname = canonicalPathname && canonicalPathname !== '/' ? canonicalPathname : currentUrl.pathname || '/login';
+    targetUrl.search = canonicalSearch;
+    targetUrl.hash = canonicalHash;
+
+    targetUrl.searchParams.set('redirect_origin', window.location.origin);
+
+    return targetUrl.toString();
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to derive magic link redirect URL from current location', error);
-    targetUrl = canonicalUrl;
+    console.error('Failed to build magic link redirect URL from current location', error);
+
+    if (parsedCanonicalRedirect) {
+      try {
+        const fallback = new URL(parsedCanonicalRedirect.toString());
+        fallback.searchParams.set('redirect_origin', window?.location?.origin || '');
+        return fallback.toString();
+      } catch (innerError) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fall back to canonical redirect target', innerError);
+      }
+    }
+
+    return undefined;
   }
-
-  if (!targetUrl) return undefined;
-
-  targetUrl.searchParams.set('redirect_origin', window.location.origin);
-
-  return targetUrl.toString();
 };

@@ -86,12 +86,12 @@ export default function LoginPage() {
     setMessage(null);
     try {
       const redirectTarget = buildMagicLinkRedirectUrl();
+      const fallbackTarget =
+        redirectTarget || (typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined);
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: {
-          emailRedirectTo: redirectTarget || undefined,
-        },
+        options: fallbackTarget ? { emailRedirectTo: fallbackTarget } : undefined,
       });
       if (error) throw error;
       setMessage('Check your email for the login link.');
