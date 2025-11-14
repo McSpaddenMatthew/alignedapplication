@@ -19,12 +19,17 @@ export default function Submit() {
     setLoading(true);
     setMessage(null);
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData?.user) throw new Error('Please log in before submitting.');
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error('Please log in before submitting.');
 
       const { data, error } = await supabase
         .from('summaries')
         .insert({
+          user_id: user.id,
           job_title: jobTitle || null,
           candidate_name: candidateName || null,
           jd_text: jdText || null,
@@ -47,9 +52,7 @@ export default function Submit() {
   return (
     <div className="container">
       <div className="bg-white rounded-xl shadow p-8 mt-10">
-        <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-          On this page you will…
-        </p>
+        <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">On this page you will…</p>
         <h1 className="text-2xl font-bold mb-4">Provide job + candidate inputs</h1>
         <p className="text-gray-700 mb-6">
           Start simple. Paste the JD and notes. You can add files later.
@@ -130,4 +133,3 @@ export default function Submit() {
     </div>
   );
 }
-
