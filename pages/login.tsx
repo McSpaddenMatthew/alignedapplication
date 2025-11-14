@@ -1,58 +1,83 @@
-import { useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+// pages/login.tsx
+import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: typeof window !== 'undefined' ? window.location.origin + '/dashboard' : undefined,
-        }
-      });
-      if (error) throw error;
-      setMessage('Check your email for the login link.');
-    } catch (err: any) {
-      setMessage(err.message || 'Login failed.');
-    } finally {
-      setLoading(false);
+    setStatus("loading");
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        // 🔥 YOUR CALLBACK ROUTE
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      console.error(error);
+      setErrorMessage(error.message);
+      setStatus("error");
+      return;
     }
+
+    setStatus("sent");
   };
 
   return (
-    <div className="container">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow p-8 mt-10">
-        <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">On this page you will…</p>
-        <h1 className="text-2xl font-bold mb-4">Log in with your email</h1>
-        <p className="text-gray-700 mb-6">We use a magic link for passwordless login. Enter your email and check your inbox.</p>
+    <main className="min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full p-6 border rounded-lg shadow-lg bg-white">
+        <h1 className="text-2xl font-bold mb-4 text-center">Sign in to Aligned</h1>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            required
-            className="w-full border rounded-lg px-3 py-2"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-accent text-white rounded-lg px-4 py-2 font-semibold"
-          >
-            {loading ? 'Sending link…' : 'Send magic link'}
-          </button>
-        </form>
+        {status === "sent" ? (
+          <p className="text-center text-green-600">
+            A magic link has been sent to <strong>{email}</strong>.  
+            Check your inbox to continue.
+          </p>
+        ) : (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block font-medium mb-1">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                className="w-full border rounded px-3 py-2"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-        {message && <p className="mt-4 text-sm text-gray-700">{message}</p>}
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            >
+              {status === "loading" ? "Sending magic link…" : "Send magic link"}
+            </button>
+
+            {status === "error" && (
+              <p className="text-red-600 text-center mt-2">
+                Error: {errorMessage}
+              </p>
+            )}
+          </form>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
+
