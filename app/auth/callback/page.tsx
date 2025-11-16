@@ -22,10 +22,16 @@ export default function AuthCallbackPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    async function handleMagicLink() {
+    async function handleMagicLink(params: URLSearchParams | null) {
       try {
+        if (!params) {
+          setStatus("error");
+          setMessage("No query parameters found in callback URL.");
+          return;
+        }
+
         // 1) Newer Supabase flow: ?code= in the query string
-        const code = searchParams.get("code");
+        const code = params.get("code");
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
@@ -36,9 +42,9 @@ export default function AuthCallbackPage() {
         // 2) Older flow: #access_token=... in the hash fragment
         const hash = window.location.hash;
         if (hash && hash.startsWith("#")) {
-          const params = new URLSearchParams(hash.slice(1));
-          const accessToken = params.get("access_token");
-          const refreshToken = params.get("refresh_token");
+          const hashParams = new URLSearchParams(hash.slice(1));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
 
           if (accessToken && refreshToken) {
             const { error } = await supabase.auth.setSession({
@@ -60,7 +66,7 @@ export default function AuthCallbackPage() {
       }
     }
 
-    handleMagicLink();
+    handleMagicLink(searchParams);
   }, [router, searchParams]);
 
   if (status === "loading") {
