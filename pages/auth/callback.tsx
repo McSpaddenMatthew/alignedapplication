@@ -23,6 +23,12 @@ export default function Callback() {
       supabase.auth
         .setSession({ access_token, refresh_token })
         .then(() => {
+          const secureFlag = window.location.protocol === "https:" ? "Secure; " : "";
+          const maxAge = 60 * 60 * 24 * 7; // one week
+
+          document.cookie = `sb-access-token=${access_token}; Max-Age=${maxAge}; Path=/; ${secureFlag}SameSite=Lax`;
+          document.cookie = `sb-refresh-token=${refresh_token}; Max-Age=${maxAge}; Path=/; ${secureFlag}SameSite=Lax`;
+
           router.replace("/dashboard");
         })
         .catch((error) => {
