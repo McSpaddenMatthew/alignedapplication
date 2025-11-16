@@ -1,6 +1,6 @@
 import { useFormState } from 'react-dom';
 import { redirect } from 'next/navigation';
-import { createServerClient } from '../../../lib/supabaseClient';
+import { createServerClient } from '../../../lib/supabaseServer';
 
 interface FormState {
   error?: string;

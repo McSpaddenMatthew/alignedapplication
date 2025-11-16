@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '../../../lib/supabaseClient';
+import { createBrowserClient } from '../../../lib/supabaseClient';
 
 // We use a client component page so we can read the hash-based tokens Supabase sends back in magic-link flows.
 export default function AuthCallbackPage() {
@@ -11,7 +11,7 @@ export default function AuthCallbackPage() {
   const [message, setMessage] = useState('Completing sign-in…');
 
   useEffect(() => {
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
     const hashParams = new URLSearchParams(hash);
     const accessToken = hashParams.get('access_token');

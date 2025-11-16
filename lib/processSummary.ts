@@ -1,4 +1,4 @@
-import { createServerClient } from './supabaseClient';
+import { createServerClient } from './supabaseServer';
 import { getOpenAIClient } from './openaiClient';
 
 export type GeneratedSummary = {

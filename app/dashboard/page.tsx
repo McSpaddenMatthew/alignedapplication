@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createServerClient } from '../../lib/supabaseClient';
+import { createServerClient } from '../../lib/supabaseServer';
 import { LogoutButton } from '../../components/LogoutButton';
 
 interface SummaryRow {
