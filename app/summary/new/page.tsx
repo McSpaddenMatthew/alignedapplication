@@ -1,166 +1,57 @@
-import { useFormState } from 'react-dom';
-import { redirect } from 'next/navigation';
-import { createServerClient } from '../../../lib/supabaseClient';
+"use client";
 
-interface FormState {
-  error?: string;
-}
+import { useState, FormEvent } from "react";
 
-async function createSummaryAction(prevState: FormState, formData: FormData): Promise<FormState> {
-  'use server';
+export default function NewSummaryPage() {
+  const [status, setStatus] = useState<null | "saving" | string>(null);
 
-  const supabase = createServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus("saving");
 
-  if (!session) {
-    redirect('/login');
-  }
+    const formData = new FormData(e.currentTarget);
+    const content = formData.get("content") as string;
 
-  const roleTitle = (formData.get('roleTitle') as string | null)?.trim();
-  const candidateName = (formData.get('candidateName') as string | null)?.trim();
-  const candidateTitle = (formData.get('candidateTitle') as string | null)?.trim();
-  const hmNotes = (formData.get('hmNotes') as string | null)?.trim();
-  const candidateNotes = (formData.get('candidateNotes') as string | null)?.trim();
-  const resumeFile = formData.get('resume') as File | null;
-
-  if (!roleTitle || !hmNotes) {
-    return { error: 'Role title and hiring manager notes are required.' };
-  }
-
-  try {
-    const publicViewId = crypto.randomUUID();
-    const { data: summary, error: summaryError } = await supabase
-      .from('summaries')
-      .insert({
-        created_by: session.user.id,
-        candidate_name: candidateName || null,
-        candidate_title: candidateTitle || null,
-        role_title: roleTitle,
-        status: 'processing',
-        public_view_id: publicViewId,
-      })
-      .select()
-      .single();
-
-    if (summaryError || !summary) {
-      console.error(summaryError);
-      return { error: 'Unable to create summary record.' };
-    }
-
-    let resumePath: string | null = null;
-    if (resumeFile && resumeFile.size > 0) {
-      const arrayBuffer = await resumeFile.arrayBuffer();
-      const storagePath = `${session.user.id}/${summary.id}/${resumeFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(storagePath, Buffer.from(arrayBuffer), {
-          contentType: resumeFile.type || 'application/octet-stream',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error(uploadError);
-        return { error: 'Failed to upload resume.' };
-      }
-
-      resumePath = storagePath;
-    }
-
-    const { error: inputError } = await supabase.from('summary_inputs').insert({
-      summary_id: summary.id,
-      hm_notes: hmNotes,
-      candidate_notes: candidateNotes || null,
-      resume_url: resumePath,
+    // Call your existing API route to create the summary
+    const res = await fetch("/api/summaries/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
     });
 
-    if (inputError) {
-      console.error(inputError);
-      return { error: 'Failed to save inputs.' };
+    const data = await res.json();
+
+    if (data.error) {
+      setStatus(data.error || "Something went wrong.");
+      return;
     }
 
-    redirect(`/summary/${summary.id}/processing`);
-  } catch (error) {
-    console.error(error);
-    return { error: 'Unexpected error creating summary.' };
-  }
-
-  return {};
-}
-
-function CreateSummaryForm({ action }: { action: any }) {
-  'use client';
-  const [state, formAction] = useFormState<FormState>(action, {});
+    window.location.href = `/summary/${data.id}`;
+  };
 
   return (
-    <div className="container py-10">
-      <div className="bg-white shadow rounded-xl p-6">
-        <h1 className="text-2xl font-semibold mb-6">Create a new summary</h1>
-        <form action={formAction} className="space-y-4" encType="multipart/form-data">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1" htmlFor="candidateName">
-                Candidate name (optional)
-              </label>
-              <input id="candidateName" name="candidateName" placeholder="Alex Candidate" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1" htmlFor="candidateTitle">
-                Candidate title (optional)
-              </label>
-              <input id="candidateTitle" name="candidateTitle" placeholder="Head of Product" />
-            </div>
-          </div>
+    <div className="max-w-xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-4">Create Summary</h1>
 
-          <div>
-            <label className="block text-sm font-semibold mb-1" htmlFor="roleTitle">
-              Role title
-            </label>
-            <input id="roleTitle" name="roleTitle" placeholder="Director of Data" required />
-          </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <textarea
+          name="content"
+          className="border p-3 rounded"
+          placeholder="Paste your transcript or notes here..."
+          required
+        />
 
-          <div>
-            <label className="block text-sm font-semibold mb-1" htmlFor="hmNotes">
-              Hiring Manager notes
-            </label>
-            <textarea id="hmNotes" name="hmNotes" required className="h-28" placeholder="Top priorities, must-haves" />
-          </div>
+        {status && status !== "saving" && (
+          <p className="text-red-600">{status}</p>
+        )}
 
-          <div>
-            <label className="block text-sm font-semibold mb-1" htmlFor="candidateNotes">
-              Candidate notes (optional)
-            </label>
-            <textarea id="candidateNotes" name="candidateNotes" className="h-24" placeholder="What the candidate shared" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-1" htmlFor="resume">
-              Resume file (optional)
-            </label>
-            <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx,.txt" className="p-0" />
-          </div>
-
-          {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-
-          <button type="submit" className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary">
-            Create summary
-          </button>
-        </form>
-      </div>
+        <button
+          type="submit"
+          className="bg-black text-white py-2 rounded"
+        >
+          {status === "saving" ? "Saving..." : "Save"}
+        </button>
+      </form>
     </div>
   );
-}
-
-export default async function NewSummaryPage() {
-  const supabase = createServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect('/login');
-  }
-
-  return <CreateSummaryForm action={createSummaryAction} />;
 }
