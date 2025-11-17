@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createServerClient } from '../../../../lib/supabaseClient';
+import { createServerClient } from '../../../../lib/supabaseServer';
 import { processSummary } from '../../../../lib/processSummary';
 
 export default async function ProcessingPage({ params }: { params: { id: string } }) {

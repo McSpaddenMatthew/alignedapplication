@@ -1,5 +1,4 @@
-import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
@@ -42,35 +41,7 @@ export function createClient() {
   });
 }
 
-export function createServerClient(): SupabaseClient {
-  const cookieStore = cookies();
-
-  return createSupabaseClient(supabaseUrl || '', supabaseAnonKey || '', {
-    auth: {
-      storage: {
-        getItem: (key) => cookieStore.get(key)?.value ?? null,
-        setItem: (key, value) => {
-          try {
-            cookieStore.set({ name: key, value, path: '/', sameSite: 'lax' });
-          } catch (error) {
-            console.error('Error setting cookie', error);
-          }
-        },
-        removeItem: (key) => {
-          try {
-            cookieStore.set({ name: key, value: '', path: '/', expires: new Date(0) });
-          } catch (error) {
-            console.error('Error removing cookie', error);
-          }
-        },
-      },
-      storageKey,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: true,
-    },
-  });
-}
-
 // Legacy singleton for Pages Router usage
 export const supabase = createSupabaseClient(supabaseUrl || '', supabaseAnonKey || '');
+
+export const createBrowserClient = createClient;

@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { createClient } from '../../lib/supabaseClient';
+import { createBrowserClient } from '../../lib/supabaseClient';
 
 export default function LoginPage() {
   const [fullName, setFullName] = useState('');
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setStatus('loading');
     setMessage('');
 
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     localStorage.setItem('aligned_full_name', fullName);
 
     const { error } = await supabase.auth.signInWithOtp({
