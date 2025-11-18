@@ -1,76 +1,13 @@
-import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const storageKey = 'aligned-auth-token';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    'Supabase env vars are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
-  );
+let client: SupabaseClient | null = null;
+
+export function getSupabaseClient(): SupabaseClient {
+  if (!client) {
+    client = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return client;
 }
-
-function createBrowserCookieStorage() {
-  return {
-    getItem: (key: string) => {
-      if (typeof document === 'undefined') return null;
-      const cookiesArr = document.cookie.split(';').map((cookie) => cookie.trim());
-      const match = cookiesArr.find((cookie) => cookie.startsWith(`${key}=`));
-      return match ? decodeURIComponent(match.split('=')[1]) : null;
-    },
-    setItem: (key: string, value: string) => {
-      if (typeof document === 'undefined') return;
-      document.cookie = `${key}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
-    },
-    removeItem: (key: string) => {
-      if (typeof document === 'undefined') return;
-      document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
-    },
-  };
-}
-
-export function createClient() {
-  return createSupabaseClient(supabaseUrl || '', supabaseAnonKey || '', {
-    auth: {
-      storage: createBrowserCookieStorage() as any,
-      storageKey,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  });
-}
-
-export function createServerClient(): SupabaseClient {
-  const cookieStore = cookies();
-
-  return createSupabaseClient(supabaseUrl || '', supabaseAnonKey || '', {
-    auth: {
-      storage: {
-        getItem: (key) => cookieStore.get(key)?.value ?? null,
-        setItem: (key, value) => {
-          try {
-            cookieStore.set({ name: key, value, path: '/', sameSite: 'lax' });
-          } catch (error) {
-            console.error('Error setting cookie', error);
-          }
-        },
-        removeItem: (key) => {
-          try {
-            cookieStore.set({ name: key, value: '', path: '/', expires: new Date(0) });
-          } catch (error) {
-            console.error('Error removing cookie', error);
-          }
-        },
-      },
-      storageKey,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: true,
-    },
-  });
-}
-
-// Legacy singleton for Pages Router usage
-export const supabase = createSupabaseClient(supabaseUrl || '', supabaseAnonKey || '');
