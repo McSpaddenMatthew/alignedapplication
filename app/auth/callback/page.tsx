@@ -1,69 +1,44 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '../../../lib/supabaseClient';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@/lib/supabase/client";
 
-// We use a client component page so we can read the hash-based tokens Supabase sends back in magic-link flows.
-export default function AuthCallbackPage() {
+export default function AuthCallback() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [message, setMessage] = useState('Completing sign-in…');
+  const supabase = createBrowserClient();
 
   useEffect(() => {
-    const supabase = createClient();
-    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
-    const hashParams = new URLSearchParams(hash);
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    const code = searchParams.get('code');
-
-    async function handleAuth() {
+    const handleAuth = async () => {
       try {
-        let sessionUser;
-        if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-          sessionUser = data.session?.user;
-        } else if (accessToken && refreshToken) {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (error) throw error;
-          sessionUser = data.session?.user;
-        } else {
-          setMessage('Missing auth tokens. Redirecting…');
-          router.replace('/login');
+        // Handles magic-link / OTP / PKCE callbacks.
+        const { data, error } = await supabase.auth.exchangeCodeForSession(
+          window.location.href
+        );
+
+        if (error || !data.session) {
+          console.error("Error exchanging code for session:", error);
+          router.replace("/login?error=callback");
           return;
         }
 
-        const storedName = typeof window !== 'undefined' ? localStorage.getItem('aligned_full_name') : null;
+        // Optional: honor ?next=/some/path
+        const url = new URL(window.location.href);
+        const next = url.searchParams.get("next") || "/dashboard";
 
-        if (sessionUser) {
-          await supabase.from('profiles').upsert({
-            id: sessionUser.id,
-            email: sessionUser.email ?? '',
-            full_name: storedName || sessionUser.user_metadata?.full_name || null,
-          });
-        }
-
-        router.replace('/dashboard');
-      } catch (error) {
-        console.error('Error handling callback', error);
-        setMessage('Sign-in failed. Redirecting to login…');
-        router.replace('/login');
+        router.replace(next);
+      } catch (err) {
+        console.error("Unexpected auth callback error:", err);
+        router.replace("/login?error=callback");
       }
-    }
+    };
 
     handleAuth();
-  }, [router, searchParams]);
+  }, [router, supabase]);
 
   return (
-    <div className="flex items-center justify-center py-10">
-      <div className="bg-white shadow rounded-xl p-6 w-full max-w-md text-center">
-        <p className="text-sm text-gray-700">{message}</p>
-      </div>
-    </div>
+    <main className="min-h-screen flex items-center justify-center">
+      <p>Signing you in…</p>
+    </main>
   );
 }

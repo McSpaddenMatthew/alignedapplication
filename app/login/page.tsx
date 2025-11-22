@@ -1,98 +1,103 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useState } from 'react';
-import { createClient } from '../../lib/supabaseClient';
+import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createBrowserClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+export default function Login() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createBrowserClient();
 
-  useEffect(() => {
-    const storedName = localStorage.getItem('aligned_full_name');
-    if (storedName) {
-      setFullName(storedName);
-    }
-  }, []);
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    "idle"
+  );
+  const [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const errorFromCallback = searchParams.get("error");
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setStatus('loading');
-    setMessage('');
+    setStatus("sending");
+    setMessage("");
 
-    const supabase = createClient();
-    localStorage.setItem('aligned_full_name', fullName);
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback`;
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectTo,
+        },
+      });
 
-    if (error) {
-      console.error(error);
-      setStatus('error');
-      setMessage(error.message);
-      return;
+      if (error) {
+        console.error("Error sending magic link:", error);
+        setStatus("error");
+        setMessage(error.message || "Error sending magic link.");
+        return;
+      }
+
+      setStatus("sent");
+      setMessage("Check your email for a magic link to sign in.");
+    } catch (err) {
+      console.error("Unexpected error sending magic link:", err);
+      setStatus("error");
+      setMessage("Unexpected error sending magic link.");
     }
-
-    setStatus('sent');
-    setMessage('Check your email for a magic link.');
   };
 
   return (
-    <div className="flex items-center justify-center py-10">
-      <div className="w-full max-w-md bg-white shadow rounded-xl p-8">
-        <h1 className="text-2xl font-semibold text-center mb-2">Sign in to Aligned</h1>
-        <p className="text-sm text-gray-600 text-center mb-6">
-          Enter your details and we will send a magic link to your email.
+    <main className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/70 p-8 shadow-xl">
+        <h1 className="mb-2 text-center text-2xl font-semibold text-white">
+          Aligned Login
+        </h1>
+        <p className="mb-6 text-center text-sm text-slate-300">
+          Enter your email to receive a one-time magic link.
         </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold mb-1" htmlFor="fullName">
-              Full name
-            </label>
-            <input
-              id="fullName"
-              name="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Taylor Recruiter"
-              required
-            />
+
+        {errorFromCallback && (
+          <div className="mb-4 rounded-lg border border-red-500/60 bg-red-500/10 p-3 text-sm text-red-200">
+            Your sign-in link didn&apos;t work. Please try again.
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1" htmlFor="email">
-              Email
-            </label>
+        )}
+
+        {message && (
+          <div
+            className={`mb-4 rounded-lg border p-3 text-sm ${
+              status === "error"
+                ? "border-red-500/60 bg-red-500/10 text-red-200"
+                : "border-emerald-500/60 bg-emerald-500/10 text-emerald-100"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block text-sm font-medium text-slate-200">
+            Work email
             <input
-              id="email"
-              name="email"
               type="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
+              placeholder="you@company.com"
             />
-          </div>
+          </label>
+
           <button
             type="submit"
-            className="w-full bg-primary text-white py-2 rounded-lg font-semibold hover:bg-ink"
-            disabled={status === 'loading'}
+            disabled={status === "sending"}
+            className="mt-2 w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-black hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {status === 'loading' ? 'Sending magic link…' : 'Send magic link'}
+            {status === "sending" ? "Sending magic link…" : "Send magic link"}
           </button>
         </form>
-        {message && <p className="text-center text-sm text-green-600 mt-4">{message}</p>}
-        {status === 'error' && !message && (
-          <p className="text-center text-sm text-red-600 mt-4">Something went wrong. Please try again.</p>
-        )}
-        <p className="text-xs text-gray-500 text-center mt-4">
-          We store your full name in localStorage temporarily so we can upsert your profile after login.
-        </p>
       </div>
-    </div>
+    </main>
   );
 }
